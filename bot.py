@@ -1,6 +1,4 @@
 import datetime, time, json, statistics
-import plotly
-import numpy as np
 
 # CONSTANTS:
 bittrexCommission = 0.9975 # 0.25% commissions
@@ -17,14 +15,20 @@ class Logger:
         Logger.f.write(string + "\n")
         print(string)
         
-    def structuredLog(self, price, fastSMAValue, slowSMAValue, action):
-        Logger.structuredLogFile
+    def structuredLog(self, price, fastSMAValue, slowSMAValue, action, currentBalance):
+        Logger.structuredLogFile.write("{\"price\": " + str(price))
+        Logger.structuredLogFile.write(", \"fastSMAValue\": " + str(fastSMAValue))
+        Logger.structuredLogFile.write(", \"slowSMAValue\": " + str(slowSMAValue))
+        Logger.structuredLogFile.write(", \"currentBalance\": " + str(currentBalance))
+        Logger.structuredLogFile.write(", \"action\": \"%s\"},\n" % action)
         
     def open():
-        Logger.f = open("log.txt", "a")
-        Logger.structuredLogFile = open("structuredlog.json", "a")
+        Logger.f = open("log.txt", "w")
+        Logger.structuredLogFile = open("structuredlog.json", "w")
+        Logger.structuredLogFile.write("[")
     def close():
         Logger.f.close()
+        Logger.structuredLogFile.write("{\"action\": \"QUIT\"}]")
         Logger.structuredLogFile.close()
 
 class Tick:
@@ -134,28 +138,38 @@ class Analyst:
         self.exchange = exchange
         self.currentPeak = 0 # Used for stop-loss. 0 when I'm merely holding BTC
         self.currentCurrency = "BTC"
-        self.currentBalance = 100
+        self.currentBalance = exchange.getCurrentBalance()
 
     def doTrading(self, repo):
-        # here do stuff on the exchange depending on the info I get from the marketStatus
+        """here do stuff on the exchange depending on the info I get from the marketStatus"""
+        log = Logger()
         currTick = repo.getTick()
         if self.currentCurrency == "BTC":
             self.currentPeak = 0
         else:
             currentPeak = max(self.currentPeak, currTick.getClose())
             
+        action = "NONE"
         if self.currentCurrency == "BTC":
             # Look for buying opportunities
             if repo.getSMA(10) > repo.getSMA(50):
                 self.exchange.buy("BTC-LTC")
                 self.currentCurrency = "LTC"
                 self.currentBalance = self.exchange.getCurrentBalance()
+                action = "BUY"
         if self.currentCurrency != "BTC":
             # Use stop-loss to see if it's better to sell
             if self.currentBalance < self.currentPeak * stopLossPercentage:
                 self.exchange.sell("BTC-LTC")
                 self.currentCurrency = "BTC"
                 self.currentBalance = self.exchange.getCurrentBalance()
+                action = "SELL"
+            # if repo.getSMA(10) < repo.getSMA(50):
+            #     self.exchange.sell("BTC-LTC")
+            #     self.currentCurrency = "BTC"
+            #     self.currentBalance = self.exchange.getCurrentBalance()
+            #     action = "SELL"
+        log.structuredLog(currTick.getClose(), repo.getSMA(10), repo.getSMA(50), action, self.currentBalance)
 
 class ExchangeWrapper:
     # Oggetto (singleton?) che wrappa le chiamate al sito di exchange
@@ -168,6 +182,7 @@ class ExchangeWrapper:
         self.currentTickIndex = 0
         self.ticks = dict()
         self.currentBalance = 100
+        self.currentCurrency = "BTC"
         log = Logger()
         log.log("Loading csv file...")
         completeTickerData = json.load(open("BTC-LTC.json", "r"))
@@ -186,19 +201,28 @@ class ExchangeWrapper:
         return output
 
     def buy(self, market):
+        if self.currentCurrency != "BTC":
+            raise Exception("Already bought!")
         log = Logger()
         log.log("BUY!")
         price = self.ticks[market][self.currentTickIndex].getClose()
         self.currentBalance = self.currentBalance * price * bittrexCommission
+        self.currentCurrency = "LTC"
 
     def sell(self, market):
+        if self.currentCurrency == "BTC":
+            raise Exception("Already sold!")
         log = Logger()
         log.log("SELL!")
         price = self.ticks[market][self.currentTickIndex].getClose()
         self.currentBalance = self.currentBalance / price * bittrexCommission
+        self.currentCurrency = "BTC"
 
     def getCurrentBalance(self):
         return self.currentBalance
+
+    def getCurrentCurrency(self):
+        return self.currentCurrency
 
 def main():
     Logger.open()
@@ -211,8 +235,9 @@ def main():
         repo.addTick(exchange.getCurrentTick("BTC-LTC"))
         repo.printMarketStatus()
         analyst.doTrading(repo)
-    log.log("finito, vendo tutto")
-    exchange.sell("BTC-LTC")
+    if exchange.getCurrentCurrency() != "BTC":
+        log.log("finito, vendo tutto")
+        exchange.sell("BTC-LTC")
     log.log("Final balance: " + str(exchange.getCurrentBalance()))
     Logger.close()
 
