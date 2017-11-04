@@ -86,7 +86,7 @@ class MarketStatusRepository:
         self.todaysTicks = [None for x in range(ticksBufferSize)] # 24 hours' worth of 1-minute candles
         # It might make sense to make a function that returns the last N days' SMA instead of computing it every time, 
         self.todaysSMA10 = [None for x in range(ticksBufferSize)] # Simple Moving Average (10 ticks)
-        self.todaysSMA50 = [None for x in range(ticksBufferSize)] # Simple Moving Average (50 ticks)
+        self.todaysSMA100 = [None for x in range(ticksBufferSize)] # Simple Moving Average (100 ticks)
         self.currentTickIndex = -1
         
     def getLastNTicks(self, tickCount):
@@ -105,7 +105,7 @@ class MarketStatusRepository:
         # Ignore None values (it just means the bot has just started and doesn't have 
         # enough ticks to compute the average of the entire window)
         self.todaysSMA10[self.currentTickIndex] = statistics.mean([x.getClose() for x in self.getLastNTicks(10)])
-        self.todaysSMA50[self.currentTickIndex] = statistics.mean([x.getClose() for x in self.getLastNTicks(50)])
+        self.todaysSMA100[self.currentTickIndex] = statistics.mean([x.getClose() for x in self.getLastNTicks(100)])
         
     def getTick(self, index = 0):
         if ticksBufferSize - index < 0:
@@ -115,16 +115,15 @@ class MarketStatusRepository:
     def getSMA(self, days):
         if days == 10:
             return self.todaysSMA10[self.currentTickIndex]
-        if days == 50:
-            return self.todaysSMA50[self.currentTickIndex]
+        if days == 100:
+            return self.todaysSMA100[self.currentTickIndex]
         raise Exception("meh")
         
     def printMarketStatus(self):
         log = Logger()
         log.log("Current tick: " + str(self.todaysTicks[self.currentTickIndex]))
         log.log("    Current SMA10: " + str(self.todaysSMA10[self.currentTickIndex]))
-        log.log("    Current SMA50: " + str(self.todaysSMA50[self.currentTickIndex]))
-        # print(self.todaysTicks[self.currentTickIndex].getClose(), self.todaysSMA10[self.currentTickIndex], self.todaysSMA50[self.currentTickIndex])
+        log.log("    Current SMA100: " + str(self.todaysSMA100[self.currentTickIndex]))
 
 class Analyst:
     # - ha un metodo che riceve in input un MarketStatus, prende una decisione su cosa fare e la fa fare all'exchangeWrapper:
@@ -152,7 +151,7 @@ class Analyst:
         action = "NONE"
         if self.currentCurrency == "BTC":
             # Look for buying opportunities
-            if repo.getSMA(10) > repo.getSMA(50):
+            if repo.getSMA(10) > repo.getSMA(100):
                 self.exchange.buy("BTC-LTC")
                 self.currentCurrency = "LTC"
                 self.currentBalance = self.exchange.getCurrentBalance()
@@ -164,12 +163,7 @@ class Analyst:
                 self.currentCurrency = "BTC"
                 self.currentBalance = self.exchange.getCurrentBalance()
                 action = "SELL"
-            # if repo.getSMA(10) < repo.getSMA(50):
-            #     self.exchange.sell("BTC-LTC")
-            #     self.currentCurrency = "BTC"
-            #     self.currentBalance = self.exchange.getCurrentBalance()
-            #     action = "SELL"
-        log.structuredLog(currTick.getClose(), repo.getSMA(10), repo.getSMA(50), action, self.currentBalance)
+        log.structuredLog(currTick.getClose(), repo.getSMA(10), repo.getSMA(100), action, self.currentBalance)
 
 class ExchangeWrapper:
     # Oggetto (singleton?) che wrappa le chiamate al sito di exchange
@@ -230,15 +224,16 @@ def main():
     exchange = ExchangeWrapper()
     repo = MarketStatusRepository()
     analyst = Analyst(exchange)
-    log.log("Initial balance: " + str(exchange.getCurrentBalance()))
+    initialBalance = exchange.getCurrentBalance()
+    log.log("Initial balance: " + str(initialBalance))
     for i in range(0,1000):
         repo.addTick(exchange.getCurrentTick("BTC-LTC"))
         repo.printMarketStatus()
         analyst.doTrading(repo)
     if exchange.getCurrentCurrency() != "BTC":
-        log.log("finito, vendo tutto")
+        log.log("Ran out of test data, selling back to BTC")
         exchange.sell("BTC-LTC")
-    log.log("Final balance: " + str(exchange.getCurrentBalance()))
+    log.log("Final balance: %s BTC" % str(exchange.getCurrentBalance()))
     Logger.close()
 
 if __name__ == "__main__":
