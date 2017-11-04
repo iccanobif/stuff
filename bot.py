@@ -148,8 +148,12 @@ class Analyst:
         if self.currentCurrency == "BTC":
             self.currentPeak = 0
         else:
-            currentPeak = max(self.currentPeak, currTick.getClose())
+            self.currentPeak = max(self.currentPeak, currTick.getClose())
             
+        if verbose:
+            repo.printMarketStatus()
+            log.log("self.currentCurrency %s; self.currentPeak %d; self.currentBalance %d" \
+                     % (self.currentCurrency, self.currentPeak, self.currentBalance))
         action = "NONE"
         if self.currentCurrency == "BTC":
             # Look for buying opportunities
@@ -201,6 +205,7 @@ class ExchangeWrapper:
 
     def gotMoreTicks(self, market):
         # -1 because i want to keep the last tick "unpopped", so that the last sell() works
+        # return self.currentTickIndex < 2000
         return self.currentTickIndex < len(self.ticks[market]) - 1 
 
     def buy(self, market):
@@ -209,7 +214,7 @@ class ExchangeWrapper:
         log = Logger()
         log.log("BUY!")
         price = self.ticks[market][self.currentTickIndex].getClose()
-        self.currentBalance = self.currentBalance * price * bittrexCommission
+        self.currentBalance = self.currentBalance / price * bittrexCommission
         self.currentCurrency = "LTC"
 
     def sell(self, market):
@@ -218,7 +223,7 @@ class ExchangeWrapper:
         log = Logger()
         log.log("SELL!")
         price = self.ticks[market][self.currentTickIndex].getClose()
-        self.currentBalance = self.currentBalance / price * bittrexCommission
+        self.currentBalance = self.currentBalance * price * bittrexCommission
         self.currentCurrency = "BTC"
 
     def getCurrentBalance(self):
@@ -237,8 +242,6 @@ def main():
     log.log("Initial balance: " + str(initialBalance))
     while exchange.gotMoreTicks("BTC-LTC"):
         repo.addTick(exchange.getCurrentTick("BTC-LTC"))
-        if verbose:
-            repo.printMarketStatus()
         analyst.doTrading(repo)
     if exchange.getCurrentCurrency() != "BTC":
         log.log("Ran out of test data, selling back to BTC")
