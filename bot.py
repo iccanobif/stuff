@@ -4,6 +4,8 @@ import datetime, time, json, statistics
 bittrexCommission = 0.9975 # 0.25% commissions
 stopLossPercentage = 0.99
 ticksBufferSize = 24*60    # How many candles are kept in memory
+enableStdoutLog = True
+verbose = False
 
 class Logger:
 
@@ -13,7 +15,8 @@ class Logger:
     def log(self, message):
         string = time.strftime("[%Y-%m-%d %H:%M:%S]", time.localtime(time.time())) + " " + message
         Logger.f.write(string + "\n")
-        print(string)
+        if enableStdoutLog:
+            print(string)
         
     def structuredLog(self, price, fastSMAValue, slowSMAValue, action, currentBalance):
         Logger.structuredLogFile.write("{\"price\": " + str(price))
@@ -133,7 +136,6 @@ class Analyst:
     # - posso averne anche più di uno, ognuno con una strategia diversa
     # - ogni analyst ha una quantità propria di coin su cui giocare
     def __init__(self, exchange):
-        print("INIT ANAYLS")
         self.exchange = exchange
         self.currentPeak = 0 # Used for stop-loss. 0 when I'm merely holding BTC
         self.currentCurrency = "BTC"
@@ -180,12 +182,15 @@ class ExchangeWrapper:
         log = Logger()
         log.log("Loading csv file...")
         completeTickerData = json.load(open("BTC-LTC.json", "r"))
-        for market in completeTickerData:
-            marketName = market["market"]
-            log.log("Doing %s ticks..." % marketName)
-            for tick in market["ticks"]:
-                if marketName not in self.ticks: self.ticks[marketName] = []
-                self.ticks[marketName].append(Tick(marketName, tick))
+        # for market in completeTickerData:
+        #     marketName = market["market"]
+        #     log.log("Doing %s ticks..." % marketName)
+        #     for tick in market["ticks"]:
+        #         if marketName not in self.ticks: self.ticks[marketName] = []
+        #         self.ticks[marketName].append(Tick(marketName, tick))
+        self.ticks["BTC-LTC"] = []
+        for tick in completeTickerData:
+            self.ticks["BTC-LTC"].append(Tick("BTC-LTC", tick))
 
     #TODO instead of keeping a huge ticks dictionary in memory, read the text file gradually
     #and use yeld to return each tick
@@ -193,6 +198,10 @@ class ExchangeWrapper:
         output = self.ticks[market][self.currentTickIndex]
         self.currentTickIndex += 1
         return output
+
+    def gotMoreTicks(self, market):
+        # -1 because i want to keep the last tick "unpopped", so that the last sell() works
+        return self.currentTickIndex < len(self.ticks[market]) - 1 
 
     def buy(self, market):
         if self.currentCurrency != "BTC":
@@ -226,9 +235,10 @@ def main():
     analyst = Analyst(exchange)
     initialBalance = exchange.getCurrentBalance()
     log.log("Initial balance: " + str(initialBalance))
-    for i in range(0,1000):
+    while exchange.gotMoreTicks("BTC-LTC"):
         repo.addTick(exchange.getCurrentTick("BTC-LTC"))
-        repo.printMarketStatus()
+        if verbose:
+            repo.printMarketStatus()
         analyst.doTrading(repo)
     if exchange.getCurrentCurrency() != "BTC":
         log.log("Ran out of test data, selling back to BTC")
