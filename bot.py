@@ -3,7 +3,7 @@ import datetime, time, json, statistics
 # CONSTANTS:
 bittrexCommission = 0.9975 # 0.25% commissions
 stopLossPercentage = 0.99
-ticksBufferSize = 24*60    # How many candles are kept in memory
+ticksBufferSize = 24*60*7    # How many candles are kept in memory
 enableStdoutLog = True
 verbose = False
 
@@ -88,8 +88,8 @@ class MarketStatusRepository:
     def __init__(self):
         self.todaysTicks = [None for x in range(ticksBufferSize)] # 24 hours' worth of 1-minute candles
         # It might make sense to make a function that returns the last N days' SMA instead of computing it every time, 
-        self.todaysSMA10 = [None for x in range(ticksBufferSize)] # Simple Moving Average (10 ticks)
-        self.todaysSMA100 = [None for x in range(ticksBufferSize)] # Simple Moving Average (100 ticks)
+        self.todaysSMAfast = [None for x in range(ticksBufferSize)] # Simple Moving Average (fast ticks)
+        self.todaysSMAslow = [None for x in range(ticksBufferSize)] # Simple Moving Average (slow ticks)
         self.currentTickIndex = -1
         
     def getLastNTicks(self, tickCount):
@@ -107,26 +107,26 @@ class MarketStatusRepository:
         # Update SMAs
         # Ignore None values (it just means the bot has just started and doesn't have 
         # enough ticks to compute the average of the entire window)
-        self.todaysSMA10[self.currentTickIndex] = statistics.mean([x.getClose() for x in self.getLastNTicks(10)])
-        self.todaysSMA100[self.currentTickIndex] = statistics.mean([x.getClose() for x in self.getLastNTicks(100)])
+        self.todaysSMAfast[self.currentTickIndex] = sum([x.getClose() for x in self.getLastNTicks(100)])/100
+        self.todaysSMAslow[self.currentTickIndex] = sum([x.getClose() for x in self.getLastNTicks(10000)])/10000
         
     def getTick(self, index = 0):
         if ticksBufferSize - index < 0:
             raise Exception("too old, mang")
         return self.todaysTicks[self.currentTickIndex - index]
         
-    def getSMA(self, days):
-        if days == 10:
-            return self.todaysSMA10[self.currentTickIndex]
-        if days == 100:
-            return self.todaysSMA100[self.currentTickIndex]
+    def getSMA(self, type):
+        if type == "fast":
+            return self.todaysSMAfast[self.currentTickIndex]
+        if type == "slow":
+            return self.todaysSMAslow[self.currentTickIndex]
         raise Exception("meh")
         
     def printMarketStatus(self):
         log = Logger()
         log.log("Current tick: " + str(self.todaysTicks[self.currentTickIndex]))
-        log.log("    Current SMA10: " + str(self.todaysSMA10[self.currentTickIndex]))
-        log.log("    Current SMA100: " + str(self.todaysSMA100[self.currentTickIndex]))
+        log.log("    Current SMAfast: " + str(self.todaysSMAfast[self.currentTickIndex]))
+        log.log("    Current SMAslow: " + str(self.todaysSMAslow[self.currentTickIndex]))
 
 class Analyst:
     # - ha un metodo che riceve in input un MarketStatus, prende una decisione su cosa fare e la fa fare all'exchangeWrapper:
@@ -152,24 +152,29 @@ class Analyst:
             
         if verbose:
             repo.printMarketStatus()
-            log.log("self.currentCurrency %s; self.currentPeak %d; self.currentBalance %d" \
-                     % (self.currentCurrency, self.currentPeak, self.currentBalance))
+            log.log("self.currentCurrency %s; self.currentPeak %f; currTick.getClose() %f" \
+                     % (self.currentCurrency, self.currentPeak, currTick.getClose()))
         action = "NONE"
         if self.currentCurrency == "BTC":
             # Look for buying opportunities
-            if repo.getSMA(10) > repo.getSMA(100):
+            if repo.getSMA("fast") > repo.getSMA("slow"):
                 self.exchange.buy("BTC-LTC")
                 self.currentCurrency = "LTC"
                 self.currentBalance = self.exchange.getCurrentBalance()
                 action = "BUY"
         if self.currentCurrency != "BTC":
-            # Use stop-loss to see if it's better to sell
-            if self.currentBalance < self.currentPeak * stopLossPercentage:
+            # # Use stop-loss to see if it's better to sell
+            # if currTick.getClose() < self.currentPeak * stopLossPercentage:
+            #     self.exchange.sell("BTC-LTC")
+            #     self.currentCurrency = "BTC"
+            #     self.currentBalance = self.exchange.getCurrentBalance()
+            #     action = "SELL"
+            if repo.getSMA("fast") < repo.getSMA("slow"):
                 self.exchange.sell("BTC-LTC")
                 self.currentCurrency = "BTC"
                 self.currentBalance = self.exchange.getCurrentBalance()
                 action = "SELL"
-        log.structuredLog(currTick.getClose(), repo.getSMA(10), repo.getSMA(100), action, self.currentBalance)
+        log.structuredLog(currTick.getClose(), repo.getSMA("fast"), repo.getSMA("slow"), action, self.currentBalance)
 
 class ExchangeWrapper:
     # Oggetto (singleton?) che wrappa le chiamate al sito di exchange
@@ -246,7 +251,7 @@ def main():
     if exchange.getCurrentCurrency() != "BTC":
         log.log("Ran out of test data, selling back to BTC")
         exchange.sell("BTC-LTC")
-    log.log("Final balance: %s BTC" % str(exchange.getCurrentBalance()))
+    log.log("Final balance: %f BTC" % exchange.getCurrentBalance())
     Logger.close()
 
 if __name__ == "__main__":
