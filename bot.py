@@ -45,36 +45,22 @@ class Tick:
     def __init__(self, market, jsonTickData):
         self.market = market
         self.jsonTickData = jsonTickData
+        # "volume" is the transaction volume for the target currency (if the market is BTC-LTC, gets the volume in LTC)
+        self.volume = jsonTickData["V"]
+        # "baseVolume" is the transaction volume for the target currency (if the market is BTC-LTC, gets the volume in BTC)
+        self.baseVolume = jsonTickData["BV"]
+        self.open = jsonTickData["O"]
+        self.close = jsonTickData["C"]
+        self.high = jsonTickData["H"]
+        self.low = jsonTickData["L"]
+        self.timestamp = self.jsonTickData["T"]
 
     def getTimestamp(self):
         #Example: 2017-09-05T22:28:00
-        t = self.jsonTickData["T"]
-        return datetime.strptime(t, "%Y-%m-%dT%H:%M:%S")
-    
-    # Gets the transaction volume for the target currency (if the market
-    # is BTC-LTC, gets the volume in LTC)
-    def getVolume(self):
-        return self.jsonTickData["V"]
-
-    # Gets the transaction volume for the target currency (if the market
-    # is BTC-LTC, gets the volume in BTC)
-    def getBaseVolume(self):
-        return self.jsonTickData["BV"]
-
-    def getOpen(self):
-        return self.jsonTickData["O"]
-
-    def getClose(self):
-        return self.jsonTickData["C"]
-
-    def getHig(self):
-        return self.jsonTickData["H"]
-
-    def getLow(self):
-        return self.jsonTickData["L"]
+        return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S")
 
     def __str__(self):
-        return str(self.market + " " + self.jsonTickData["T"] + " C: " + str(self.getClose()))
+        return str(self.market + " " + self.jsonTickData["T"] + " C: " + str(self.close))
         
 class MarketStatusRepository:
     # Oggetto (singleton?) MarketStatusRepository, in cui posso
@@ -107,8 +93,8 @@ class MarketStatusRepository:
         # Update SMAs
         # Ignore None values (it just means the bot has just started and doesn't have 
         # enough ticks to compute the average of the entire window)
-        self.todaysSMAfast[self.currentTickIndex] = sum([x.getClose() for x in self.getLastNTicks(100)])/100
-        self.todaysSMAslow[self.currentTickIndex] = sum([x.getClose() for x in self.getLastNTicks(10000)])/10000
+        self.todaysSMAfast[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(100)])/100
+        self.todaysSMAslow[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(10000)])/10000
         
     def getTick(self, index = 0):
         if ticksBufferSize - index < 0:
@@ -148,12 +134,12 @@ class Analyst:
         if self.currentCurrency == "BTC":
             self.currentPeak = 0
         else:
-            self.currentPeak = max(self.currentPeak, currTick.getClose())
+            self.currentPeak = max(self.currentPeak, currTick.close)
             
         if verbose:
             repo.printMarketStatus()
-            log.log("self.currentCurrency %s; self.currentPeak %f; currTick.getClose() %f" \
-                     % (self.currentCurrency, self.currentPeak, currTick.getClose()))
+            log.log("self.currentCurrency %s; self.currentPeak %f; currTick.close %f" \
+                     % (self.currentCurrency, self.currentPeak, currTick.close))
         action = "NONE"
         if self.currentCurrency == "BTC":
             # Look for buying opportunities
@@ -164,7 +150,7 @@ class Analyst:
                 action = "BUY"
         if self.currentCurrency != "BTC":
             # # Use stop-loss to see if it's better to sell
-            # if currTick.getClose() < self.currentPeak * stopLossPercentage:
+            # if currTick.close < self.currentPeak * stopLossPercentage:
             #     self.exchange.sell("BTC-LTC")
             #     self.currentCurrency = "BTC"
             #     self.currentBalance = self.exchange.getCurrentBalance()
@@ -174,7 +160,7 @@ class Analyst:
                 self.currentCurrency = "BTC"
                 self.currentBalance = self.exchange.getCurrentBalance()
                 action = "SELL"
-        log.structuredLog(currTick.getClose(), repo.getSMA("fast"), repo.getSMA("slow"), action, self.currentBalance)
+        log.structuredLog(currTick.close, repo.getSMA("fast"), repo.getSMA("slow"), action, self.currentBalance)
 
 class ExchangeWrapper:
     # Oggetto (singleton?) che wrappa le chiamate al sito di exchange
@@ -218,7 +204,7 @@ class ExchangeWrapper:
             raise Exception("Already bought!")
         log = Logger()
         log.log("BUY!")
-        price = self.ticks[market][self.currentTickIndex].getClose()
+        price = self.ticks[market][self.currentTickIndex].close
         self.currentBalance = self.currentBalance / price * bittrexCommission
         self.currentCurrency = "LTC"
 
@@ -227,7 +213,7 @@ class ExchangeWrapper:
             raise Exception("Already sold!")
         log = Logger()
         log.log("SELL!")
-        price = self.ticks[market][self.currentTickIndex].getClose()
+        price = self.ticks[market][self.currentTickIndex].close
         self.currentBalance = self.currentBalance * price * bittrexCommission
         self.currentCurrency = "BTC"
 
