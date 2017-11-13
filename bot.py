@@ -1,11 +1,14 @@
 import datetime, time, json, statistics
 
-# CONSTANTS:
+# CONFIGURATION:
 bittrexCommission = 0.9975 # 0.25% commissions
 stopLossPercentage = 0.99
 ticksBufferSize = 24*60*7    # How many candles are kept in memory
-enableStdoutLog = True
-verbose = False
+enableStdoutLog = False
+verbose = True
+accurateMean = True
+fastSMAWindow = 10000
+slowSMAWindow = 100
 
 class Logger:
 
@@ -70,6 +73,8 @@ class MarketStatusRepository:
     #     - andamento (in crescita? in discesa?) fondamentalmente qui è il valore delle moving averages
     # keep the ticks in a circular buffer
     # also keep another circular buffer holding the SMA for every corresponding value in the ticks buffer
+
+    # Might be a good idea to make a CircularBuffer class to avoid having to deal with its complexities here.
     
     def __init__(self):
         self.todaysTicks = [None for x in range(ticksBufferSize)] # 24 hours' worth of 1-minute candles
@@ -93,8 +98,15 @@ class MarketStatusRepository:
         # Update SMAs
         # Ignore None values (it just means the bot has just started and doesn't have 
         # enough ticks to compute the average of the entire window)
-        self.todaysSMAfast[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(100)])/100
-        self.todaysSMAslow[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(10000)])/10000
+
+        # statistics.mean might be slightly more precise, but it's probably not worth it
+
+        if accurateMean:
+            self.todaysSMAfast[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(fastSMAValue) if not x is None])
+            self.todaysSMAslow[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(slowSMAWindow) if not x is None])
+        else:
+            self.todaysSMAfast[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(fastSMAWindow) if not x is None])/len(self.getLastNTicks(fastSMAWindow))
+            self.todaysSMAslow[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(slowSMAWindow) if not x is None])/len(self.getLastNTicks(slowSMAWindow))
         
     def getTick(self, index = 0):
         if ticksBufferSize - index < 0:
@@ -175,7 +187,7 @@ class ExchangeWrapper:
         self.currentBalance = 100
         self.currentCurrency = "BTC"
         log = Logger()
-        log.log("Loading csv file...")
+        log.log("Loading backtest data file...")
         completeTickerData = json.load(open("BTC-LTC.json", "r"))
         # for market in completeTickerData:
         #     marketName = market["market"]
@@ -196,7 +208,7 @@ class ExchangeWrapper:
 
     def gotMoreTicks(self, market):
         # -1 because i want to keep the last tick "unpopped", so that the last sell() works
-        # return self.currentTickIndex < 2000
+        return self.currentTickIndex < 2000
         return self.currentTickIndex < len(self.ticks[market]) - 1 
 
     def buy(self, market):
@@ -230,7 +242,7 @@ def main():
     repo = MarketStatusRepository()
     analyst = Analyst(exchange)
     initialBalance = exchange.getCurrentBalance()
-    log.log("Initial balance: " + str(initialBalance))
+    log.log("Initial balance: %f BTC" % initialBalance)
     while exchange.gotMoreTicks("BTC-LTC"):
         repo.addTick(exchange.getCurrentTick("BTC-LTC"))
         analyst.doTrading(repo)
