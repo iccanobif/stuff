@@ -6,9 +6,9 @@ stopLossPercentage = 0.99
 ticksBufferSize = 24*60*7    # How many candles are kept in memory
 enableStdoutLog = False
 verbose = True
-accurateMean = True
-fastSMAWindow = 10000
-slowSMAWindow = 100
+accurateMean = True # statistics.mean might be slightly more precise, but it's probably not worth it
+fastSMAWindow = 100
+slowSMAWindow = 10000
 
 class Logger:
 
@@ -99,10 +99,8 @@ class MarketStatusRepository:
         # Ignore None values (it just means the bot has just started and doesn't have 
         # enough ticks to compute the average of the entire window)
 
-        # statistics.mean might be slightly more precise, but it's probably not worth it
-
         if accurateMean:
-            self.todaysSMAfast[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(fastSMAValue) if not x is None])
+            self.todaysSMAfast[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(fastSMAWindow) if not x is None])
             self.todaysSMAslow[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(slowSMAWindow) if not x is None])
         else:
             self.todaysSMAfast[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(fastSMAWindow) if not x is None])/len(self.getLastNTicks(fastSMAWindow))
