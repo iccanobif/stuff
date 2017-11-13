@@ -6,7 +6,7 @@ stopLossPercentage = 0.99
 ticksBufferSize = 24*60*7    # How many candles are kept in memory
 enableStdoutLog = False
 verbose = True
-accurateMean = True # statistics.mean might be slightly more precise, but it's probably not worth it
+accurateMean = False # statistics.mean might be slightly more precise, but it's probably not worth it
 fastSMAWindow = 100
 slowSMAWindow = 10000
 
@@ -21,8 +21,9 @@ class Logger:
         if enableStdoutLog:
             print(string)
         
-    def structuredLog(self, price, fastSMAValue, slowSMAValue, action, currentBalance):
+    def structuredLog(self, price, volume, fastSMAValue, slowSMAValue, action, currentBalance):
         Logger.structuredLogFile.write("{\"price\": " + str(price))
+        Logger.structuredLogFile.write(", \"volume\": " + str(volume))
         Logger.structuredLogFile.write(", \"fastSMAValue\": " + str(fastSMAValue))
         Logger.structuredLogFile.write(", \"slowSMAValue\": " + str(slowSMAValue))
         Logger.structuredLogFile.write(", \"currentBalance\": " + str(currentBalance))
@@ -74,7 +75,7 @@ class MarketStatusRepository:
     # keep the ticks in a circular buffer
     # also keep another circular buffer holding the SMA for every corresponding value in the ticks buffer
 
-    # Might be a good idea to make a CircularBuffer class to avoid having to deal with its complexities here.
+    # TODO: Might be a good idea to make a CircularBuffer class to avoid having to deal with its complexities here.
     
     def __init__(self):
         self.todaysTicks = [None for x in range(ticksBufferSize)] # 24 hours' worth of 1-minute candles
@@ -99,6 +100,9 @@ class MarketStatusRepository:
         # Ignore None values (it just means the bot has just started and doesn't have 
         # enough ticks to compute the average of the entire window)
 
+
+        # TODO: calculate the average incrementally for performance https://ubuntuincident.wordpress.com/2012/04/25/calculating-the-average-incrementally/
+        # keep in mind that in the first fastSMAWindow ticks the buffer isn't full...
         if accurateMean:
             self.todaysSMAfast[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(fastSMAWindow) if not x is None])
             self.todaysSMAslow[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(slowSMAWindow) if not x is None])
@@ -151,6 +155,7 @@ class Analyst:
             log.log("self.currentCurrency %s; self.currentPeak %f; currTick.close %f" \
                      % (self.currentCurrency, self.currentPeak, currTick.close))
         action = "NONE"
+
         if self.currentCurrency == "BTC":
             # Look for buying opportunities
             if repo.getSMA("fast") > repo.getSMA("slow"):
@@ -170,7 +175,7 @@ class Analyst:
                 self.currentCurrency = "BTC"
                 self.currentBalance = self.exchange.getCurrentBalance()
                 action = "SELL"
-        log.structuredLog(currTick.close, repo.getSMA("fast"), repo.getSMA("slow"), action, self.currentBalance)
+        log.structuredLog(currTick.close, currTick.baseVolume, repo.getSMA("fast"), repo.getSMA("slow"), action, self.currentBalance)
 
 class ExchangeWrapper:
     # Oggetto (singleton?) che wrappa le chiamate al sito di exchange
@@ -206,7 +211,7 @@ class ExchangeWrapper:
 
     def gotMoreTicks(self, market):
         # -1 because i want to keep the last tick "unpopped", so that the last sell() works
-        return self.currentTickIndex < 2000
+        # return self.currentTickIndex < 2000
         return self.currentTickIndex < len(self.ticks[market]) - 1 
 
     def buy(self, market):
@@ -241,9 +246,13 @@ def main():
     analyst = Analyst(exchange)
     initialBalance = exchange.getCurrentBalance()
     log.log("Initial balance: %f BTC" % initialBalance)
+    i = 0
     while exchange.gotMoreTicks("BTC-LTC"):
         repo.addTick(exchange.getCurrentTick("BTC-LTC"))
         analyst.doTrading(repo)
+        if i % 1000 == 0:
+            print("Done %d out of %d (%d%%)..." % (i, len(exchange.ticks["BTC-LTC"]), round(float(i) / len(exchange.ticks["BTC-LTC"]) * 100, 0)))
+        i += 1
     if exchange.getCurrentCurrency() != "BTC":
         log.log("Ran out of test data, selling back to BTC")
         exchange.sell("BTC-LTC")
@@ -252,3 +261,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
