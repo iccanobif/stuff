@@ -78,6 +78,7 @@ class MarketStatusRepository:
     # also keep another circular buffer holding the EMA for every corresponding value in the ticks buffer
 
     # TODO: Might be a good idea to make a CircularBuffer class to avoid having to deal with its complexities here.
+    #       calls to getLastNTicks are currently the performance bottleneck in backtesting
     
     def __init__(self):
         self.todaysTicks = [None for x in range(ticksBufferSize)] # 24 hours' worth of 1-minute candles
@@ -85,15 +86,21 @@ class MarketStatusRepository:
         self.todaysEMAfast = [None for x in range(ticksBufferSize)] # Simple Moving Average (fast ticks)
         self.todaysEMAslow = [None for x in range(ticksBufferSize)] # Simple Moving Average (slow ticks)
         self.currentTickIndex = -1
+        self.totalProcessedTicks = -1
         
     def getLastNTicks(self, tickCount):
         if self.currentTickIndex >= tickCount:
             return self.todaysTicks[self.currentTickIndex - tickCount:self.currentTickIndex + 1]
         else:
-            return [x for x in self.todaysTicks[self.currentTickIndex - tickCount:] if not x is None] \
-                   + [x for x in self.todaysTicks[0:self.currentTickIndex + 1]]
+            # Gotta ignore the None values in the list (this is only a problem when the bot just started and the buffer isn't full yet)
+            if tickCount <= self.totalProcessedTicks :
+                return self.todaysTicks[self.currentTickIndex - tickCount:] \
+                        + self.todaysTicks[0:self.currentTickIndex + 1]
+            else:
+                return self.todaysTicks[0:self.currentTickIndex + 1]
     
     def addTick(self, tick):
+        self.totalProcessedTicks += 1
         self.currentTickIndex += 1
         if self.currentTickIndex == ticksBufferSize:
             self.currentTickIndex = 0
@@ -281,6 +288,7 @@ def main():
         exchange.sell("BTC-LTC")
     log.log("Final balance: %f BTC" % exchange.getCurrentBalance())
     Logger.close()
+    print("DONE")
 
 if __name__ == "__main__":
     main()
