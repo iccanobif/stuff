@@ -8,7 +8,9 @@ enableStdoutLog = False
 verbose = True
 accurateMean = False # statistics.mean might be slightly more precise, but it's probably not worth it
 fastSMAWindow = 100
-slowSMAWindow = 10000
+slowSMAWindow = 5000
+fastEMAMultiplier = (2 / (fastSMAWindow + 1.0) )
+slowEMAMultiplier = (2 / (slowSMAWindow + 1.0) )
 
 class Logger:
 
@@ -100,15 +102,36 @@ class MarketStatusRepository:
         # Ignore None values (it just means the bot has just started and doesn't have 
         # enough ticks to compute the average of the entire window)
 
+        self.computeSMA()
 
-        # TODO: calculate the average incrementally for performance https://ubuntuincident.wordpress.com/2012/04/25/calculating-the-average-incrementally/
-        # keep in mind that in the first fastSMAWindow ticks the buffer isn't full...
-        if accurateMean:
-            self.todaysSMAfast[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(fastSMAWindow) if not x is None])
-            self.todaysSMAslow[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(slowSMAWindow) if not x is None])
+    def computeSMA(self):
+
+        if len(self.getLastNTicks(fastSMAWindow)) < fastSMAWindow:
+        # Just started the bot, not enough candles for computing the EMA, so fallback to SMA
+            if accurateMean:
+                self.todaysSMAfast[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(fastSMAWindow) if not x is None])
+            else:
+                self.todaysSMAfast[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(fastSMAWindow) if not x is None])/len(self.getLastNTicks(fastSMAWindow))
         else:
-            self.todaysSMAfast[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(fastSMAWindow) if not x is None])/len(self.getLastNTicks(fastSMAWindow))
-            self.todaysSMAslow[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(slowSMAWindow) if not x is None])/len(self.getLastNTicks(slowSMAWindow))
+            # Multiplier: (2 / (Time periods + 1) ) = (2 / (10 + 1) ) = 0.1818 (18.18%)
+            # EMA: {Close - EMA(previous day)} x multiplier + EMA(previous day). 
+            self.todaysSMAfast[self.currentTickIndex] = (self.todaysTicks[self.currentTickIndex].close - self.todaysSMAfast[self.currentTickIndex - 1]) \
+                                                        * fastEMAMultiplier \
+                                                        + self.todaysSMAfast[self.currentTickIndex - 1]
+
+        if len(self.getLastNTicks(slowSMAWindow)) < slowSMAWindow:
+        # Just started the bot, not enough candles for computing the EMA, so fallback to SMA
+            if accurateMean:
+                self.todaysSMAslow[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(slowSMAWindow) if not x is None])
+            else:
+                self.todaysSMAslow[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(slowSMAWindow) if not x is None])/len(self.getLastNTicks(slowSMAWindow))
+            
+        else:
+            # Multiplier: (2 / (Time periods + 1) ) = (2 / (10 + 1) ) = 0.1818 (18.18%)
+            # EMA: {Close - EMA(previous day)} x multiplier + EMA(previous day). 
+            self.todaysSMAslow[self.currentTickIndex] = (self.todaysTicks[self.currentTickIndex].close - self.todaysSMAslow[self.currentTickIndex - 1]) \
+                                                        * slowEMAMultiplier \
+                                                        + self.todaysSMAslow[self.currentTickIndex - 1]
         
     def getTick(self, index = 0):
         if ticksBufferSize - index < 0:

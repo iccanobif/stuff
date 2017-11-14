@@ -1,3 +1,5 @@
+# TODO: Prova questo invece che plotly http://rrag.github.io/react-stockcharts/documentation.html
+
 import json
 import plotly
 import plotly.graph_objs as go
