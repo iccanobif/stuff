@@ -1,6 +1,6 @@
 historical_data
 log.txt
 appunti.txt
-structuredlog.json
+*.json
 graph.html
 profile.txt
