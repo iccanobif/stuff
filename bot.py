@@ -7,10 +7,10 @@ ticksBufferSize = 24*60*7    # How many candles are kept in memory
 enableStdoutLog = False
 verbose = True
 accurateMean = False # statistics.mean might be slightly more precise, but it's probably not worth it
-fastSMAWindow = 100
-slowSMAWindow = 5000
-fastEMAMultiplier = (2 / (fastSMAWindow + 1.0) )
-slowEMAMultiplier = (2 / (slowSMAWindow + 1.0) )
+fastEMAWindow = 100
+slowEMAWindow = 5000
+fastEMAMultiplier = (2 / (fastEMAWindow + 1.0) )
+slowEMAMultiplier = (2 / (slowEMAWindow + 1.0) )
 
 class Logger:
 
@@ -23,11 +23,11 @@ class Logger:
         if enableStdoutLog:
             print(string)
         
-    def structuredLog(self, price, volume, fastSMAValue, slowSMAValue, action, currentBalance):
+    def structuredLog(self, price, volume, fastEMAValue, slowEMAValue, action, currentBalance):
         Logger.structuredLogFile.write("{\"price\": " + str(price))
         Logger.structuredLogFile.write(", \"volume\": " + str(volume))
-        Logger.structuredLogFile.write(", \"fastSMAValue\": " + str(fastSMAValue))
-        Logger.structuredLogFile.write(", \"slowSMAValue\": " + str(slowSMAValue))
+        Logger.structuredLogFile.write(", \"fastEMAValue\": " + str(fastEMAValue))
+        Logger.structuredLogFile.write(", \"slowEMAValue\": " + str(slowEMAValue))
         Logger.structuredLogFile.write(", \"currentBalance\": " + str(currentBalance))
         Logger.structuredLogFile.write(", \"action\": \"%s\"},\n" % action)
         
@@ -75,15 +75,15 @@ class MarketStatusRepository:
     #     - valore attuale
     #     - andamento (in crescita? in discesa?) fondamentalmente qui è il valore delle moving averages
     # keep the ticks in a circular buffer
-    # also keep another circular buffer holding the SMA for every corresponding value in the ticks buffer
+    # also keep another circular buffer holding the EMA for every corresponding value in the ticks buffer
 
     # TODO: Might be a good idea to make a CircularBuffer class to avoid having to deal with its complexities here.
     
     def __init__(self):
         self.todaysTicks = [None for x in range(ticksBufferSize)] # 24 hours' worth of 1-minute candles
-        # It might make sense to make a function that returns the last N days' SMA instead of computing it every time, 
-        self.todaysSMAfast = [None for x in range(ticksBufferSize)] # Simple Moving Average (fast ticks)
-        self.todaysSMAslow = [None for x in range(ticksBufferSize)] # Simple Moving Average (slow ticks)
+        # It might make sense to make a function that returns the last N days' EMA instead of computing it every time, 
+        self.todaysEMAfast = [None for x in range(ticksBufferSize)] # Simple Moving Average (fast ticks)
+        self.todaysEMAslow = [None for x in range(ticksBufferSize)] # Simple Moving Average (slow ticks)
         self.currentTickIndex = -1
         
     def getLastNTicks(self, tickCount):
@@ -98,58 +98,58 @@ class MarketStatusRepository:
         if self.currentTickIndex == ticksBufferSize:
             self.currentTickIndex = 0
         self.todaysTicks[self.currentTickIndex] = tick
-        # Update SMAs
+        # Update EMAs
         # Ignore None values (it just means the bot has just started and doesn't have 
         # enough ticks to compute the average of the entire window)
 
-        self.computeSMA()
+        self.computeEMA()
 
-    def computeSMA(self):
+    def computeEMA(self):
 
-        if len(self.getLastNTicks(fastSMAWindow)) < fastSMAWindow:
-        # Just started the bot, not enough candles for computing the EMA, so fallback to SMA
+        if len(self.getLastNTicks(fastEMAWindow)) < fastEMAWindow:
+        # Just started the bot, not enough candles for computing the EMA, so fallback to EMA
             if accurateMean:
-                self.todaysSMAfast[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(fastSMAWindow) if not x is None])
+                self.todaysEMAfast[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(fastEMAWindow) if not x is None])
             else:
-                self.todaysSMAfast[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(fastSMAWindow) if not x is None])/len(self.getLastNTicks(fastSMAWindow))
+                self.todaysEMAfast[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(fastEMAWindow) if not x is None])/len(self.getLastNTicks(fastEMAWindow))
         else:
             # Multiplier: (2 / (Time periods + 1) ) = (2 / (10 + 1) ) = 0.1818 (18.18%)
             # EMA: {Close - EMA(previous day)} x multiplier + EMA(previous day). 
-            self.todaysSMAfast[self.currentTickIndex] = (self.todaysTicks[self.currentTickIndex].close - self.todaysSMAfast[self.currentTickIndex - 1]) \
+            self.todaysEMAfast[self.currentTickIndex] = (self.todaysTicks[self.currentTickIndex].close - self.todaysEMAfast[self.currentTickIndex - 1]) \
                                                         * fastEMAMultiplier \
-                                                        + self.todaysSMAfast[self.currentTickIndex - 1]
+                                                        + self.todaysEMAfast[self.currentTickIndex - 1]
 
-        if len(self.getLastNTicks(slowSMAWindow)) < slowSMAWindow:
-        # Just started the bot, not enough candles for computing the EMA, so fallback to SMA
+        if len(self.getLastNTicks(slowEMAWindow)) < slowEMAWindow:
+        # Just started the bot, not enough candles for computing the EMA, so fallback to EMA
             if accurateMean:
-                self.todaysSMAslow[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(slowSMAWindow) if not x is None])
+                self.todaysEMAslow[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(slowEMAWindow) if not x is None])
             else:
-                self.todaysSMAslow[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(slowSMAWindow) if not x is None])/len(self.getLastNTicks(slowSMAWindow))
+                self.todaysEMAslow[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(slowEMAWindow) if not x is None])/len(self.getLastNTicks(slowEMAWindow))
             
         else:
             # Multiplier: (2 / (Time periods + 1) ) = (2 / (10 + 1) ) = 0.1818 (18.18%)
             # EMA: {Close - EMA(previous day)} x multiplier + EMA(previous day). 
-            self.todaysSMAslow[self.currentTickIndex] = (self.todaysTicks[self.currentTickIndex].close - self.todaysSMAslow[self.currentTickIndex - 1]) \
+            self.todaysEMAslow[self.currentTickIndex] = (self.todaysTicks[self.currentTickIndex].close - self.todaysEMAslow[self.currentTickIndex - 1]) \
                                                         * slowEMAMultiplier \
-                                                        + self.todaysSMAslow[self.currentTickIndex - 1]
+                                                        + self.todaysEMAslow[self.currentTickIndex - 1]
         
     def getTick(self, index = 0):
         if ticksBufferSize - index < 0:
             raise Exception("too old, mang")
         return self.todaysTicks[self.currentTickIndex - index]
         
-    def getSMA(self, type):
+    def getEMA(self, type):
         if type == "fast":
-            return self.todaysSMAfast[self.currentTickIndex]
+            return self.todaysEMAfast[self.currentTickIndex]
         if type == "slow":
-            return self.todaysSMAslow[self.currentTickIndex]
+            return self.todaysEMAslow[self.currentTickIndex]
         raise Exception("meh")
         
     def printMarketStatus(self):
         log = Logger()
         log.log("Current tick: " + str(self.todaysTicks[self.currentTickIndex]))
-        log.log("    Current SMAfast: " + str(self.todaysSMAfast[self.currentTickIndex]))
-        log.log("    Current SMAslow: " + str(self.todaysSMAslow[self.currentTickIndex]))
+        log.log("    Current EMAfast: " + str(self.todaysEMAfast[self.currentTickIndex]))
+        log.log("    Current EMAslow: " + str(self.todaysEMAslow[self.currentTickIndex]))
 
 class Analyst:
     # - ha un metodo che riceve in input un MarketStatus, prende una decisione su cosa fare e la fa fare all'exchangeWrapper:
@@ -181,7 +181,7 @@ class Analyst:
 
         if self.currentCurrency == "BTC":
             # Look for buying opportunities
-            if repo.getSMA("fast") > repo.getSMA("slow"):
+            if repo.getEMA("fast") > repo.getEMA("slow"):
                 self.exchange.buy("BTC-LTC")
                 self.currentCurrency = "LTC"
                 self.currentBalance = self.exchange.getCurrentBalance()
@@ -193,12 +193,12 @@ class Analyst:
             #     self.currentCurrency = "BTC"
             #     self.currentBalance = self.exchange.getCurrentBalance()
             #     action = "SELL"
-            if repo.getSMA("fast") < repo.getSMA("slow"):
+            if repo.getEMA("fast") < repo.getEMA("slow"):
                 self.exchange.sell("BTC-LTC")
                 self.currentCurrency = "BTC"
                 self.currentBalance = self.exchange.getCurrentBalance()
                 action = "SELL"
-        log.structuredLog(currTick.close, currTick.baseVolume, repo.getSMA("fast"), repo.getSMA("slow"), action, self.currentBalance)
+        log.structuredLog(currTick.close, currTick.baseVolume, repo.getEMA("fast"), repo.getEMA("slow"), action, self.currentBalance)
 
 class ExchangeWrapper:
     # Oggetto (singleton?) che wrappa le chiamate al sito di exchange
