@@ -106,8 +106,6 @@ class MarketStatusRepository:
             self.currentTickIndex = 0
         self.todaysTicks[self.currentTickIndex] = tick
         # Update EMAs
-        # Ignore None values (it just means the bot has just started and doesn't have 
-        # enough ticks to compute the average of the entire window)
 
         self.computeEMA()
 
@@ -129,9 +127,9 @@ class MarketStatusRepository:
         if len(self.getLastNTicks(slowEMAWindow)) < slowEMAWindow:
         # Just started the bot, not enough candles for computing the EMA, so fallback to EMA
             if accurateMean:
-                self.todaysEMAslow[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(slowEMAWindow) if not x is None])
+                self.todaysEMAslow[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(slowEMAWindow)])
             else:
-                self.todaysEMAslow[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(slowEMAWindow) if not x is None])/len(self.getLastNTicks(slowEMAWindow))
+                self.todaysEMAslow[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(slowEMAWindow)])/len(self.getLastNTicks(slowEMAWindow))
             
         else:
             # Multiplier: (2 / (Time periods + 1) ) = (2 / (10 + 1) ) = 0.1818 (18.18%)
