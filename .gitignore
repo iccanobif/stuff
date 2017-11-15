@@ -4,3 +4,4 @@ appunti.txt
 *.json
 graph.html
 profile.txt
+__pycache__
