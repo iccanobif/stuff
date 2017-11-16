@@ -21,8 +21,8 @@ class Logger:
         Logger.structuredLogFile.write(", \"action\": \"%s\"},\n" % action)
         
     def open():
-        Logger.f = open("log.txt", "w")
-        Logger.structuredLogFile = open("structuredlog.json", "w")
+        Logger.f = open("../output_files/log.txt", "w")
+        Logger.structuredLogFile = open("../output_files/structuredlog.json", "w")
         Logger.structuredLogFile.write("[")
     def close():
         Logger.f.close()

@@ -19,7 +19,7 @@ class ExchangeWrapper:
         self.currentCurrency = "BTC"
         log = Logger()
         log.log("Loading backtest data file...")
-        completeTickerData = json.load(open("../BTC-LTC.json", "r"))
+        completeTickerData = json.load(open("../backtesting_data/BTC-LTC.json", "r"))
         # for market in completeTickerData:
         #     marketName = market["market"]
         #     log.log("Doing %s ticks..." % marketName)
