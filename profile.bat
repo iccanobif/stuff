@@ -1,1 +1,0 @@
-python -m cProfile -s tottime bot.py > profile.txt
