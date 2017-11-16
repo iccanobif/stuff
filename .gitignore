@@ -1,7 +1,3 @@
-historical_data
-log.txt
-appunti.txt
-*.json
-graph.html
-profile.txt
 __pycache__
+output_files
+backtesting_data

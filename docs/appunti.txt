@@ -1,0 +1,69 @@
+Questo sembra interessante per prendere dati, anzichè direttamente da bittrex:
+https://www.cryptocompare.com/api/#-api-data-price-
+
+exchange alternativo invece che bittrex: https://changelly.com/
+    - ha tante cripto, ma lavora anche con fiat
+anche gdax in realtà potrebbe non essere male
+
+guardando le coppie disponibili su bittrex, non esiste niente che posso comprare con ETH
+che non possa già prendere con BTC
+
+
+Nel pensare ad un algoritmo, potrei tenere conto di questi elementi:
+- varie moving average
+- volume
+- differenza tra high e low di una candela (per vedere se c'e' stata tanta oscillazione?)
+- la differenza tra la moving average attuale e quella di N (1?) candele prima, per calcolare 
+  il coefficiente di crescita -> E' sicuramente piu' veloce e reattivo che le medie mobili, ma occhio
+  che potrebbe dare troppo peso a rumore inutile
+- resistenza e supporto (quando il prezzo è vicino alla resistenza, vendi, se è vicino al supporto, compra)
+
+********************************
+* QUA SOTTO AREA IDEE DI CACCA *
+********************************
+
+    idee per algoritmo pensate al parco:
+
+    memorizza il valore iniziale (in BTC?) con cui faccio partire il bot. non voglio che vada mai sotto quel valore 
+    al netto di una piccola percentuale, senn? si fermerebbe dopo la prima transazione, contanto i suoi fee.
+
+    - raccogli ultimo tick 
+    - sotto il valore iniziale? converti in btc e chiudi il bot
+    - guarda gli andamenti tra la valuta che ho attualmente e tutte le valute con cui posso fare trading (se
+        ora ho bitcoin, quasi tutte, se ora ho un altcoin, solo BTC e ETH e poco altro)
+        - trova quella che sta crescendo di piu'
+        - se tutte scendono non fare niente, sono già sul cavallo migliore
+            NON è VERO, perchè anche se sono su un alt che sta crescendo, potrebbero esserci 
+            altri alt cheh crescono di più
+
+    Tentativo di calcolo SMA incrementalmente (non funziona)
+
+        def computeSMA(self):
+            if len(self.todaysSMAfast) < ticksBufferSize:
+                self.todaysSMAfast.append(self.todaysTicks[self.currentTickIndex].close)
+                self.todaysSMAslow.append(self.todaysTicks[self.currentTickIndex].close)
+            else:
+                self.todaysSMAfast[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(100)])/100
+                self.todaysSMAslow[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(10000)])/10000
+
+            # if len(self.todaysTicks) == 1:
+            #     self.todaysSMAfast[self.currentTickIndex] = self.todaysTicks[self.currentTickIndex].close
+            #     self.todaysSMAslow[self.currentTickIndex] = self.todaysTicks[self.currentTickIndex].close
+            # elif len(self.todaysTicks) < ticksBufferSize:
+            #     # https://ubuntuincident.wordpress.com/2012/04/25/calculating-the-average-incrementally/
+            #     # Aᵢ = Aᵢ₋₁+(vᵢ - Aᵢ₋₁)/i
+            #     self.todaysSMAfast[self.currentTickIndex] = self.todaysSMAfast[self.currentTickIndex - 1] \
+            #                                                 + ((self.todaysTicks[self.currentTickIndex].close - self.todaysSMAfast[self.currentTickIndex - 1]) \
+            #                                                     / (self.currentTickIndex + 1))
+            #     self.todaysSMAslow[self.currentTickIndex] = self.todaysSMAfast[self.currentTickIndex]
+
+            # else:
+            #     # I subtract the part of the previous average due to the oldest element that's going out of the buffer window
+            #     # and add the latest tick value (both divided by the size of the buffer window)
+            #     # Aᵢ = Aᵢ₋₁-vᵢ₋₁₀₀/100 + vᵢ/100, assuming a 100 ticks window
+            #     self.todaysSMAfast[self.currentTickIndex] = self.todaysSMAfast[self.currentTickIndex - 1] \
+            #                                                 - self.todaysTicks[(self.currentTickIndex - 100) % len(self.todaysTicks)].close \
+            #                                                 + self.todaysTicks[self.currentTickIndex].close
+            #     self.todaysSMAslow[self.currentTickIndex] = self.todaysSMAslow[self.currentTickIndex - 1] \
+            #                                                 - self.todaysTicks[(self.currentTickIndex - 10000) % len(self.todaysTicks)].close \
+            #                                                 + self.todaysTicks[self.currentTickIndex].close
