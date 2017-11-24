@@ -5,12 +5,12 @@ Tick (open point: ma un tick avrà le candele o solo valori attuali?)
 - candela per quel periodo (high, low, open, close, volume)
 - oppure i valori del tick (bid, sell, quella roba li' che non ho ancora capito)
  
-Oggetto (singleton?) MarketStatusRepository, in cui posso
+Oggetto MarketStatusRepository per ogni market, in cui posso
 - aggiungere un nuovo tick (ogni volta che aggiungo, ricalcola subito tutte le moving average eccetera)
 - recuperare lo stato di un mercato (classe MarketStatus)
     - valore attuale
     - andamento (in crescita? in discesa?) fondamentalmente qui è il valore delle moving averages
-   
+
 Oggetto Analyst
 - ha un metodo che riceve in input un MarketStatus e restituisce una decisione su cosa fare:
     - vendere
@@ -18,15 +18,19 @@ Oggetto Analyst
     - NOP
 - posso averne anche più di uno, ognuno con una strategia diversa
 - ogni analyst ha una quantità propria di coin su cui giocare
-   
+
 Oggetto (singleton?) che wrappa le chiamate al sito di exchange
 - vendere
 - comprare
 - get del tick attuale
- 
+
 metodo main, in loop:
 - recupera i dati da bittrex
 - li butta dentro MarketStatusRepository
 - prende da MarketStatusRepository lo stato attuale dei mercati
 - li passa ai vari Analyst, che restituiscono delle azioni da fare
     - se ci sono azioni da fare, falle con il wrapper bittrex
+
+Come gestire i dati di backtest?
+- un file per ogni mercato, una riga per ogni candela
+- una classe che possa iterare sul json di un singolo mercato, e quando gli viene chiesta la candela di una certa data, scorre finchè non la trova (se la successiva candela è futura, restituisce ripetuta la candela precente... bleh)

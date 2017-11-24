@@ -1,4 +1,5 @@
-# TODO: Prova questo invece che plotly http://rrag.github.io/react-stockcharts/documentation.html
+# TODO: Try this instead of plotly http://rrag.github.io/react-stockcharts/documentation.html
+# This one might be good, too, it was in the pandas tutorial https://matplotlib.org/
 
 import json
 import plotly

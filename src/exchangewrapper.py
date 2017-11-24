@@ -1,67 +1,75 @@
+import datetime, calendar
 import json
+import os
+import time
+
 import config
+from dtos import Candle, Tick
 from logger import Logger
-from tick import Tick
 
+class ExchangeWrapperForBacktesting:
 
+    class TickIterator:
+        def __init__(self, marketName):
+            self.marketName = marketName
+            self.f = open("../backtesting_data/" + marketName + ".json")
+            line = self.f.readline()
+            self.previousTick = Candle(marketName, json.loads(line))
+            self.currTick = self.previousTick
 
-class ExchangeWrapper:
-    # Oggetto (singleton?) che wrappa le chiamate al sito di exchange
-    # - vendere
-    # - comprare
-    # - get del tick attuale
-    # può anche essere mock, e in realtà leggere direttamente da un json coi dati storici
-    
+        def get(self, timestamp):
+            
+            if timestamp < self.currTick.getTimestamp():
+                return self.previousTick
+            
+            line = self.f.readline()
+            self.currTick = Candle(self.marketName, json.loads(line))
+            self.previousTick = self.currTick
+            return self.currTick # Returns the current tick (it's the one I was asked for)
+
     def __init__(self):
-        self.currentTickIndex = 0
-        self.ticks = dict()
-        self.currentBalance = 100
-        self.currentCurrency = "BTC"
-        log = Logger()
-        log.log("Loading backtest data file...")
-        completeTickerData = json.load(open("../backtesting_data/BTC-LTC.json", "r"))
-        # for market in completeTickerData:
-        #     marketName = market["market"]
-        #     log.log("Doing %s ticks..." % marketName)
-        #     for tick in market["ticks"]:
-        #         if marketName not in self.ticks: self.ticks[marketName] = []
-        #         self.ticks[marketName].append(Tick(marketName, tick))
-        self.ticks["BTC-LTC"] = []
-        for tick in completeTickerData:
-            self.ticks["BTC-LTC"].append(Tick("BTC-LTC", tick))
+        self.currentTime = time.strptime("2017-09-05T22:31:00", "%Y-%m-%dT%H:%M:%S")
+        self.iterators = dict()
+        self.currentTicks = dict() # key: market
+        for marketName in os.listdir("../backtesting_data"):
+            if not marketName.endswith(".json"):
+                continue
+            marketName = marketName.replace(".json", "")
+            self.iterators[marketName] = self.TickIterator(marketName)
 
-    #TODO instead of keeping a huge ticks dictionary in memory, read the text file gradually
-    #and use yeld to return each tick
-    def getCurrentTick(self, market):
-        output = self.ticks[market][self.currentTickIndex]
-        self.currentTickIndex += 1
-        return output
+    def getCurrentTick(self, marketName):
+        # Returns a Tick object
+        return self.iterators[marketName].get(self.currentTime)
 
-    def gotMoreTicks(self, market):
-        # -1 because i want to keep the last tick "unpopped", so that the last sell() works
-        # return self.currentTickIndex < 2000
-        return self.currentTickIndex < len(self.ticks[market]) - 1 
 
-    def buy(self, market):
-        if self.currentCurrency != "BTC":
-            raise Exception("Already bought!")
-        log = Logger()
-        log.log("BUY!")
-        price = self.ticks[market][self.currentTickIndex].close
-        self.currentBalance = self.currentBalance / price * config.bittrexCommission
-        self.currentCurrency = "LTC"
+    def wait(self):
+        # Simulate the passage of time when backtesting
+        # Adds 60 seconds
+        self.currentTime = time.gmtime(calendar.timegm(self.currentTime) + 60)
 
-    def sell(self, market):
-        if self.currentCurrency == "BTC":
-            raise Exception("Already sold!")
-        log = Logger()
-        log.log("SELL!")
-        price = self.ticks[market][self.currentTickIndex].close
-        self.currentBalance = self.currentBalance * price * config.bittrexCommission
-        self.currentCurrency = "BTC"
+    def getMarketList(self):
+        pass
+
+    def buy(self):
+        pass
+
+    def sell(self):
+        pass
 
     def getCurrentBalance(self):
-        return self.currentBalance
+        pass
 
     def getCurrentCurrency(self):
-        return self.currentCurrency
+        pass
+
+def test():
+    ex = ExchangeWrapperForBacktesting()
+    for i in range(100):
+        # for marketName in os.listdir("../backtesting_data"):
+        #     if not marketName.endswith(".json"):
+        #         continue
+        print(ex.getCurrentTick("BTC-1ST"))
+        ex.wait()
+
+if __name__ == "__main__":
+    test()

@@ -8,7 +8,6 @@ anche gdax in realtà potrebbe non essere male
 guardando le coppie disponibili su bittrex, non esiste niente che posso comprare con ETH
 che non possa già prendere con BTC
 
-
 Nel pensare ad un algoritmo, potrei tenere conto di questi elementi:
 - varie moving average
 - volume
@@ -17,6 +16,19 @@ Nel pensare ad un algoritmo, potrei tenere conto di questi elementi:
   il coefficiente di crescita -> E' sicuramente piu' veloce e reattivo che le medie mobili, ma occhio
   che potrebbe dare troppo peso a rumore inutile
 - resistenza e supporto (quando il prezzo è vicino alla resistenza, vendi, se è vicino al supporto, compra)
+
+Informazioni che so sui dati che mi arrivano da bittrex:
+- ogni timestamp è sempre all'inizio del minuto
+- per svariati mercati (esempio BTC-GNO) ho dei buchi senza di candele di 5 minuti o piu). cosa vuol dire? nessun trade in quei minuti?
+
+query pandas utili:
+
+OUTER JOIN: pandas.merge(uno, due, on="market", how="outer").loc[:,["market", "O_x", "O_y"]]
+GROUP BY:   j.groupby("market").agg(numpy.min)["T"].sort_values()
+            j.loc[:,["market", "V"]].groupby("market").agg({"market": len, "V": sum}).sort_values(by="V").loc["BTC-ETH"]
+            
+
+BTC-GNO
 
 ********************************
 * QUA SOTTO AREA IDEE DI CACCA *

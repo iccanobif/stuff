@@ -1,4 +1,6 @@
-class Tick:
+import time
+
+class Candle:
     #Tick (open point: ma un tick avrà le candele o solo valori attuali?)
     # - timestamp
     # - lunghezza periodo (1 minuto?)
@@ -21,8 +23,18 @@ class Tick:
 
     def getTimestamp(self):
         #Example: 2017-09-05T22:28:00
-        return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S")
+        return time.strptime(self.timestamp, "%Y-%m-%dT%H:%M:%S")
 
     def __str__(self):
         return str(self.market + " " + self.jsonTickData["T"] + " C: " + str(self.close))
-        
+
+class Tick:
+    def __init__(self):
+        self.market = None
+        self.price = None
+        self.ask = None
+        self.bid = None
+        self.timestamp = None
+
+    def __str__(self):
+        return str(self.market + " " + str(self.timestamp) + " value: " + str(self.price))
