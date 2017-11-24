@@ -12,7 +12,7 @@ class ExchangeWrapperForBacktesting:
     class TickIterator:
         def __init__(self, marketName):
             self.marketName = marketName
-            self.f = open("../backtesting_data/" + marketName + ".json")
+            self.f = open(config.backtestingDataDirectory + "/" + marketName + ".json")
             line = self.f.readline()
             self.previousTick = Candle(marketName, json.loads(line))
             self.currTick = self.previousTick
@@ -22,8 +22,12 @@ class ExchangeWrapperForBacktesting:
             if timestamp < self.currTick.getTimestamp():
                 return self.previousTick
             
-            line = self.f.readline()
-            self.currTick = Candle(self.marketName, json.loads(line))
+            # If I'm asked for a timestamp later than the current position in 
+            # the json, burn through the extra candles
+            while timestamp >= self.currTick.getTimestamp():
+                line = self.f.readline()
+                self.currTick = Candle(self.marketName, json.loads(line))
+            
             self.previousTick = self.currTick
             return self.currTick # Returns the current tick (it's the one I was asked for)
 
@@ -31,7 +35,7 @@ class ExchangeWrapperForBacktesting:
         self.currentTime = time.strptime("2017-09-05T22:31:00", "%Y-%m-%dT%H:%M:%S")
         self.iterators = dict()
         self.currentTicks = dict() # key: market
-        for marketName in os.listdir("../backtesting_data"):
+        for marketName in os.listdir(config.backtestingDataDirectory):
             if not marketName.endswith(".json"):
                 continue
             marketName = marketName.replace(".json", "")
@@ -39,6 +43,7 @@ class ExchangeWrapperForBacktesting:
 
     def getCurrentTick(self, marketName):
         # Returns a Tick object
+        print("current time", time.strftime("[%Y-%m-%d %H:%M:%S]",self.currentTime))
         return self.iterators[marketName].get(self.currentTime)
 
 
@@ -64,8 +69,8 @@ class ExchangeWrapperForBacktesting:
 
 def test():
     ex = ExchangeWrapperForBacktesting()
-    for i in range(100):
-        # for marketName in os.listdir("../backtesting_data"):
+    for i in range(10):
+        # for marketName in os.listdir(config.backtestingDataDirectory):
         #     if not marketName.endswith(".json"):
         #         continue
         print(ex.getCurrentTick("BTC-1ST"))
