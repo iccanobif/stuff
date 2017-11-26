@@ -13,25 +13,13 @@ class ExchangeWrapperForBacktesting:
         def __init__(self, marketName):
             self.marketName = marketName
             self.f = open(config.backtestingDataDirectory + "/" + marketName + ".json")
-            line = self.f.readline()
-            self.previousTick = None
-            self.currTick = Candle(marketName, json.loads(line))
+            self.currTick = None
 
         def get(self, timestamp):
-            
-            if timestamp < self.currTick.getTimestamp():
-                if not self.previousTick is None:
-                    return self.previousTick
-                else:
-                    return self.currTick
-            
-            # If I'm asked for a timestamp later than the current position in 
-            # the json, burn through the extra candles
-            while timestamp > self.currTick.getTimestamp():
+            self.currentTime = timestamp
+            while self.currTick is None or self.currTick.getTimestamp() < timestamp:
                 line = self.f.readline()
                 self.currTick = Candle(self.marketName, json.loads(line))
-            
-            self.previousTick = self.currTick
             return self.currTick # Returns the current tick (it's the one I was asked for)
 
     def __init__(self):
@@ -72,7 +60,7 @@ class ExchangeWrapperForBacktesting:
 
 def test():
     ex = ExchangeWrapperForBacktesting()
-    for i in range(10):
+    for i in range(1000):
         # for marketName in os.listdir(config.backtestingDataDirectory):
         #     if not marketName.endswith(".json"):
         #         continue
