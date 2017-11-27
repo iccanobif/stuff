@@ -32,19 +32,13 @@ class Analyst:
         if self.currentCurrency == "BTC":
             # Look for buying opportunities
             if repo.getEMA("fast") > repo.getEMA("slow"):
-                self.exchange.buy("BTC-LTC")
+                self.exchange.buy("BTC-LTC", self.exchange.getCurrentBalance(), currTick.close)
                 self.currentCurrency = "LTC"
                 self.currentBalance = self.exchange.getCurrentBalance()
                 action = "BUY"
         if self.currentCurrency != "BTC":
-            # # Use stop-loss to see if it's better to sell
-            # if currTick.close < self.currentPeak * stopLossPercentage:
-            #     self.exchange.sell("BTC-LTC")
-            #     self.currentCurrency = "BTC"
-            #     self.currentBalance = self.exchange.getCurrentBalance()
-            #     action = "SELL"
             if repo.getEMA("fast") < repo.getEMA("slow"):
-                self.exchange.sell("BTC-LTC")
+                self.exchange.sell("BTC-LTC", self.exchange.getCurrentBalance(), currTick.close)
                 self.currentCurrency = "BTC"
                 self.currentBalance = self.exchange.getCurrentBalance()
                 action = "SELL"

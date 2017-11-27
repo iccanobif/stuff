@@ -1,0 +1,62 @@
+https://bittrex.com/api/v1.1/public/getmarkets
+    - mi dice solo quali coppie di valute sono possibili
+https://bittrex.com/api/v1.1/public/getcurrencies
+    - mi elenca solo quali valute esistono e info tipo TxFee, quelle che paghi quando
+      mandi coin di quella valuta da qualche altra parte -> credo che siano i fee
+      di minatura, in aggunta al fee del 0.25% costante che bittrex mette in tutte le transazioni
+https://bittrex.com/api/v1.1/public/getticker?market=BTC-LTC
+    - prende solo i valori attuali (price, ask e bid)
+https://bittrex.com/api/v1.1/public/getmarketsummaries
+    - sommario delle ultime 24 ore (troppo lungo, non mi va bene)
+https://bittrex.com/api/v1.1/public/getmarketsummary?market=btc-ltc
+    - sommario delle ultime 24 ore (troppo lungo, non mi va bene)
+https://bittrex.com/api/v1.1/public/getorderbook?market=BTC-LTC&type=both
+https://bittrex.com/api/v1.1/public/getmarkethistory?market=BTC-DOGE
+    - recupera gli ultimi trade avvenuti su un certo mercato (piu' o meno nelle ultime due ore)
+
+https://bittrex.com/api/v1.1/market/buylimit?apikey=API_KEY&market=BTC-LTC&quantity=1.2&rate=1.3
+    - crea un buy order
+https://bittrex.com/api/v1.1/market/selllimit?apikey=API_KEY&market=BTC-LTC&quantity=1.2&rate=1.3
+    - crea un sell order
+https://bittrex.com/api/v1.1/market/cancel?apikey=API_KEY&uuid=ORDER_UUID
+    - annulla un order
+https://bittrex.com/api/v1.1/market/getopenorders?apikey=API_KEY&market=BTC-LTC
+    - recupera gli ordini appesi
+
+https://bittrex.com/api/v1.1/account/getbalances?apikey=API_KEY
+https://bittrex.com/api/v1.1/account/getbalance?apikey=API_KEY&currency=BTC
+https://bittrex.com/api/v1.1/account/getdepositaddress?apikey=API_KEY&currency=VTC
+https://bittrex.com/api/v1.1/account/withdraw?apikey=API_KEY&currency=EAC&quantity=20.40&address=EAC_ADDRESS
+https://bittrex.com/api/v1.1/account/getorder&uuid=0cb4c4e4-bdc7-4e13-8c13-430e587d2cc1
+https://bittrex.com/api/v1.1/account/getorderhistory
+https://bittrex.com/api/v1.1/account/getwithdrawalhistory?currency=BTC
+https://bittrex.com/api/v1.1/account/getdeposithistory?currency=BTC
+
+API v2!!!!
+
+Prende le candele di un mercato
+https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-DOGE&tickInterval=day
+https://bittrex.com/Api/v2.0/key/market/TradeSell
+https://bittrex.com/Api/v2.0/key/market/TradeBuy
+
+"oneMin", "fiveMin", "thirtyMin", "hour" and "day"
+V = Volume = ETH volume.
+BV = Base Volume = BTC volume. (BTC is the base because the market is "BTC-ETH")
+T = timestamp
+O 0.01638673 ?
+H 0.016463 ?
+L 0.01638673 ?
+C 0.01643991 ?
+immagino sia open, high, low e close?
+
+
+How to choose which API to use to get the live data for the bot?
+- getticker in the v1.1 API only gets a single market, and iterating through all of them with no
+  parallelism takes around 1 minute
+  I guess i *could* just cycle through all markets and therefore get each one's price value every minute,
+  but that way I wouldn't know anything about the transaction volume...
+  But i guess that's the case for most bots that use the ticker anyway
+
+I could get the price data with getticker (in a way it's more accurate since it's got ask and bid too, 
+and i can calculate the spread) and infer the changes in volume with getmarketsummaries (just one call to get
+the last 24 hours' volume of every market). Gotta test that...
