@@ -47,9 +47,6 @@ class ExchangeWrapperForBacktesting:
         # Returns a Tick object
         return self.iterators[marketName].get(self.currentTime)
 
-    def gotMoreTicks(self, marketName):
-        return self.getCurrentTick(marketName) is not None
-
     def wait(self):
         # Simulate the passage of time when backtesting
         # Adds 60 seconds
