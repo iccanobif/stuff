@@ -8,6 +8,9 @@ anche gdax in realtà potrebbe non essere male
 guardando le coppie disponibili su bittrex, non esiste niente che posso comprare con ETH
 che non possa già prendere con BTC
 
+- assign to each market a number that expresses how confident i am on the fact that it's mooning (for example with <0 values to say that it's tanking, and >0 values for mooning
+- put money on the top three, divided in equal parts, or maybe proportional to the confidence value
+
 Nel pensare ad un algoritmo, potrei tenere conto di questi elementi:
 - varie moving average
 - volume

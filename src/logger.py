@@ -1,5 +1,6 @@
 import time
 import config
+import json
 
 class Logger:
 
@@ -12,13 +13,8 @@ class Logger:
         if config.enableStdoutLog:
             print(string)
         
-    def structuredLog(self, price, volume, fastEMAValue, slowEMAValue, action, currentBalance):
-        Logger.structuredLogFile.write("{\"price\": " + str(price))
-        Logger.structuredLogFile.write(", \"volume\": " + str(volume))
-        Logger.structuredLogFile.write(", \"fastEMAValue\": " + str(fastEMAValue))
-        Logger.structuredLogFile.write(", \"slowEMAValue\": " + str(slowEMAValue))
-        Logger.structuredLogFile.write(", \"currentBalance\": " + str(currentBalance))
-        Logger.structuredLogFile.write(", \"action\": \"%s\"},\n" % action)
+    def structuredLog(self, obj):
+        Logger.structuredLogFile.write(json.dumps(obj) + ",\n")
         
     def open():
         Logger.f = open("../output_files/log.txt", "w")
@@ -28,3 +24,12 @@ class Logger:
         Logger.f.close()
         Logger.structuredLogFile.write("{\"action\": \"QUIT\"}]")
         Logger.structuredLogFile.close()
+
+def test():
+    l = Logger()
+    Logger.open()
+    l.structuredLog({"lol": "lol", "merda": "dfscsdafads"})
+    Logger.close()
+
+if __name__ == "__main__":
+    test()

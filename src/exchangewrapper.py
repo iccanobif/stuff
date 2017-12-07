@@ -35,7 +35,7 @@ class ExchangeWrapperForBacktesting:
         self.iterators = dict()
         
         self.currentBalance = 100
-        self.currentCurrency = "BTC"
+        self.currentCurrency = config.baseCurrency
 
         for marketName in os.listdir(config.backtestingDataDirectory):
             if not marketName.endswith(".json"):

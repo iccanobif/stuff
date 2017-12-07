@@ -2,7 +2,7 @@ from logger import Logger
 import config
 
 class MarketStatusRepository:
-    # Oggetto (singleton?) MarketStatusRepository, in cui posso
+    # Oggetto MarketStatusRepository, in cui posso
     # - aggiungere un nuovo tick (ogni volta che aggiungo, ricalcola subito tutte le moving average eccetera)
     # - recuperare lo stato di un mercato (classe MarketStatus)
     #     - valore attuale
@@ -13,7 +13,8 @@ class MarketStatusRepository:
     # TODO: Might be a good idea to make a CircularBuffer class to avoid having to deal with its complexities here.
     #       calls to getLastNTicks are currently the performance bottleneck in backtesting
     
-    def __init__(self):
+    def __init__(self, marketName):
+        self.marketName = marketName
         self.todaysTicks = [None for x in range(config.ticksBufferSize)] # 24 hours' worth of 1-minute candles
         # It might make sense to make a function that returns the last N days' EMA instead of computing it every time, 
         self.todaysEMAfast = [None for x in range(config.ticksBufferSize)] # Simple Moving Average (fast ticks)
@@ -38,7 +39,6 @@ class MarketStatusRepository:
         if self.currentTickIndex == config.ticksBufferSize:
             self.currentTickIndex = 0
         self.todaysTicks[self.currentTickIndex] = tick
-        # Update EMAs
 
         self.computeEMA()
 

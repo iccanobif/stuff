@@ -9,3 +9,4 @@ slowEMAWindow = 5000
 fastEMAMultiplier = (2 / (fastEMAWindow + 1.0) )
 slowEMAMultiplier = (2 / (slowEMAWindow + 1.0) )
 backtestingDataDirectory = "../backtesting_data"
+baseCurrency = "BTC"
