@@ -2,3 +2,4 @@ __pycache__
 output_files
 backtesting_data
 _*
+src/config.py
