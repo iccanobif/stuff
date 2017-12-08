@@ -1,4 +1,4 @@
-import datetime, calendar, json, os, time, requests
+import datetime, calendar, json, os, time, requests, hashlib, hmac
 
 import config
 from dtos import Candle, Tick
@@ -79,15 +79,58 @@ class ExchangeWrapperForBacktesting:
     def getCurrentCurrency(self):
         return self.currentCurrency
 
+class ExchangeWrapper:
+
+    def getCurrentTick(self, marketName):
+        # Returns an object with the properties Bid, Ask and Last
+        response = requests.get("https://bittrex.com/api/v1.1/public/getticker?market=%s" % marketName)
+        response.raise_for_status()
+        j = response.json()["result"]
+        output = Tick()
+        output.market = marketName
+        output.price = j["Last"]
+        output.ask = j["Ask"]
+        output.bid = j["Bid"]
+        output.timestamp = None #TODO
+        return output
+
+    def getMarketList(self):
+        response = requests.get("https://bittrex.com/api/v1.1/public/getmarkets")
+        response.raise_for_status()
+        return [x for x in response.json()["result"] if x["BaseCurrency"] == "BTC"]
+
+    def buy(self, market, quantity, rate):
+        log = Logger()
+        log.log("BUY!")
+
+    def sell(self, market, quantity, rate): 
+        log = Logger()
+        log.log("SELL!")
+
+    def getBalances(self):
+        nonce = int(time.time())
+        url = "https://bittrex.com/api/v1.1/account/getbalances?apikey=%s&nonce=%s" % (config.bittrexKey, nonce)
+        signature = hmac.new(config.bittrexSecret.encode(), url.encode(), hashlib.sha512).hexdigest()
+        headers = {"apisign": signature}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        j = response.json() 
+        if j["success"] != True:
+            raise Exception(j["message"])
+        
+        return dict([(x["Currency"], x["Balance"]) for x in j["result"] if x["Balance"] > 0])
+
+# def test():
+#     ex = ExchangeWrapperForBacktesting()
+#     for i in range(1000):
+#         print(ex.getCurrentTick("BTC-LTC"))
+#         ex.wait()
+
 def test():
-    ex = ExchangeWrapperForBacktesting()
-    for i in range(1000):
-        # for marketName in os.listdir(config.backtestingDataDirectory):
-        #     if not marketName.endswith(".json"):
-        #         continue
-        # print(ex.getCurrentTick("BTC-1ST"))
-        print(ex.getCurrentTick("BTC-LTC"))
-        ex.wait()
+    ex = ExchangeWrapper()
+    # print(len(ex.getMarketList()))
+    # print(ex.getCurrentTick("BTC-LTC"))
+    print(ex.getBalances())
 
 if __name__ == "__main__":
     test()
