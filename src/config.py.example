@@ -10,3 +10,7 @@ fastEMAMultiplier = (2 / (fastEMAWindow + 1.0) )
 slowEMAMultiplier = (2 / (slowEMAWindow + 1.0) )
 backtestingDataDirectory = "../backtesting_data"
 baseCurrency = "BTC"
+bittrexKey = ""
+bittrexSecret = ""
+timestampStringFormat = "%Y-%m-%dT%H:%M:%S"
+enableActualTrading = False # If True, trade with real money, if False, merely simulates the trading

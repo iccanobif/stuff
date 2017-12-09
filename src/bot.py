@@ -1,15 +1,15 @@
 # import datetime, time, json, statistics
 # import config, ExchangeWrapper
 from analyst import Analyst
-from exchangewrapper import ExchangeWrapperForBacktesting
+from exchangewrapper import ExchangeWrapperForBacktesting, ExchangeWrapper
 from logger import Logger
 from marketstatusrepository import MarketStatusRepository
 import config
 
-def main():
+def main_backtesting():
     Logger.open()
     log = Logger()
-    exchange = ExchangeWrapperForBacktesting()
+    exchange = ExchangeWrapper()
     btc_eth = MarketStatusRepository("BTC-ETH")
     btc_ltc = MarketStatusRepository("BTC-LTC")
     repo = MarketStatusRepository("BTC-LTC")
@@ -36,6 +36,28 @@ def main():
     log.log("Final balance: %f BTC" % exchange.getCurrentBalance())
     Logger.close()
     print("DONE")
+
+def main():
+    Logger.open()
+    log = Logger()
+    exchange = ExchangeWrapper()
+    repo_btc_ltc = MarketStatusRepository("BTC-LTC")
+    repo_btc_mona = MarketStatusRepository("BTC-MONA")
+    analyst = Analyst(exchange)
+    while True:
+        # currentTick = exchange.getCurrentTick("BTC-LTC")
+        print("Nuovo ciclo...")
+        currentTick = exchange.getCurrentTick("BTC-LTC")
+        repo_btc_ltc.addTick(currentTick)
+        print(currentTick, repo_btc_ltc.getEMA("fast"))
+
+        currentTick = exchange.getCurrentTick("BTC-MONA")
+        repo_btc_mona.addTick(currentTick)
+        print(currentTick, repo_btc_mona.getEMA("fast"))
+        
+        # analyst.doTrading([repo])
+        exchange.wait()
+    Logger.close()
 
 if __name__ == "__main__":
     main()

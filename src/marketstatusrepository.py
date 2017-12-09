@@ -47,27 +47,27 @@ class MarketStatusRepository:
         if len(self.getLastNTicks(config.fastEMAWindow)) < config.fastEMAWindow:
         # Just started the bot, not enough candles for computing the EMA, so fallback to EMA
             if config.accurateMean:
-                self.todaysEMAfast[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(config.fastEMAWindow) if not x is None])
+                self.todaysEMAfast[self.currentTickIndex] = statistics.mean([x.price for x in self.getLastNTicks(config.fastEMAWindow) if not x is None])
             else:
-                self.todaysEMAfast[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(config.fastEMAWindow) if not x is None])/len(self.getLastNTicks(config.fastEMAWindow))
+                self.todaysEMAfast[self.currentTickIndex] = sum([x.price for x in self.getLastNTicks(config.fastEMAWindow) if not x is None])/len(self.getLastNTicks(config.fastEMAWindow))
         else:
             # Multiplier: (2 / (Time periods + 1) ) = (2 / (10 + 1) ) = 0.1818 (18.18%)
             # EMA: {Close - EMA(previous day)} x multiplier + EMA(previous day). 
-            self.todaysEMAfast[self.currentTickIndex] = (self.todaysTicks[self.currentTickIndex].close - self.todaysEMAfast[self.currentTickIndex - 1]) \
+            self.todaysEMAfast[self.currentTickIndex] = (self.todaysTicks[self.currentTickIndex].price - self.todaysEMAfast[self.currentTickIndex - 1]) \
                                                         * config.fastEMAMultiplier \
                                                         + self.todaysEMAfast[self.currentTickIndex - 1]
 
         if len(self.getLastNTicks(config.slowEMAWindow)) < config.slowEMAWindow:
         # Just started the bot, not enough candles for computing the EMA, so fallback to EMA
             if config.accurateMean:
-                self.todaysEMAslow[self.currentTickIndex] = statistics.mean([x.close for x in self.getLastNTicks(config.slowEMAWindow)])
+                self.todaysEMAslow[self.currentTickIndex] = statistics.mean([x.price for x in self.getLastNTicks(config.slowEMAWindow)])
             else:
-                self.todaysEMAslow[self.currentTickIndex] = sum([x.close for x in self.getLastNTicks(config.slowEMAWindow)])/len(self.getLastNTicks(config.slowEMAWindow))
+                self.todaysEMAslow[self.currentTickIndex] = sum([x.price for x in self.getLastNTicks(config.slowEMAWindow)])/len(self.getLastNTicks(config.slowEMAWindow))
             
         else:
             # Multiplier: (2 / (Time periods + 1) ) = (2 / (10 + 1) ) = 0.1818 (18.18%)
             # EMA: {Close - EMA(previous day)} x multiplier + EMA(previous day). 
-            self.todaysEMAslow[self.currentTickIndex] = (self.todaysTicks[self.currentTickIndex].close - self.todaysEMAslow[self.currentTickIndex - 1]) \
+            self.todaysEMAslow[self.currentTickIndex] = (self.todaysTicks[self.currentTickIndex].price - self.todaysEMAslow[self.currentTickIndex - 1]) \
                                                         * config.slowEMAMultiplier \
                                                         + self.todaysEMAslow[self.currentTickIndex - 1]
         

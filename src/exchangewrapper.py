@@ -31,7 +31,7 @@ class ExchangeWrapperForBacktesting:
             return self.currTick # Returns the current tick (it's the one I was asked for)
 
     def __init__(self):
-        self.currentTime = time.strptime("2017-09-05T22:31:00", "%Y-%m-%dT%H:%M:%S")
+        self.currentTime = time.strptime("2017-09-05T22:31:00", config.timestampStringFormat)
         self.iterators = dict()
         
         self.currentBalance = 100
@@ -83,6 +83,7 @@ class ExchangeWrapper:
 
     def getCurrentTick(self, marketName):
         # Returns an object with the properties Bid, Ask and Last
+        initialTime = time.clock()
         response = requests.get("https://bittrex.com/api/v1.1/public/getticker?market=%s" % marketName)
         response.raise_for_status()
         j = response.json()["result"]
@@ -91,34 +92,70 @@ class ExchangeWrapper:
         output.price = j["Last"]
         output.ask = j["Ask"]
         output.bid = j["Bid"]
-        output.timestamp = None #TODO
+        output.timestamp = datetime.datetime.fromtimestamp(time.time())
+        print(time.clock() - initialTime)
         return output
 
     def getMarketList(self):
         response = requests.get("https://bittrex.com/api/v1.1/public/getmarkets")
         response.raise_for_status()
+        if j["success"] != True:
+            raise Exception(j["message"])
         return [x for x in response.json()["result"] if x["BaseCurrency"] == "BTC"]
 
-    def buy(self, market, quantity, rate):
-        log = Logger()
-        log.log("BUY!")
+    def getSellOrderBook(self, marketName):
+        url = "https://bittrex.com/api/v1.1/public/getorderbook?market=%s&type=sell" % marketName
+        response = requests.get(url)
+        response.raise_for_status()
+        j = response.json()
+        if j["success"] != True:
+            raise Exception(j["message"])
+        return j["result"]
 
-    def sell(self, market, quantity, rate): 
-        log = Logger()
-        log.log("SELL!")
+    def getBuyOrderBook(self, marketName):
+        url = "https://bittrex.com/api/v1.1/public/getorderbook?market=%s&type=buy" % marketName
 
-    def getBalances(self):
-        nonce = int(time.time())
-        url = "https://bittrex.com/api/v1.1/account/getbalances?apikey=%s&nonce=%s" % (config.bittrexKey, nonce)
+    def runMarketOperation(self, url):
+        # Handles all the HMAC authentication stuff
+        # Check wether in the url there are already GET parameters or not
+        if url.find("?") < 0:
+            url = url + "?"
+        else:
+            url = url + "&"
+
+        nonce = int(time.time())    
+        url = url + "apikey=%s&nonce=%s" % (config.bittrexKey, nonce)
         signature = hmac.new(config.bittrexSecret.encode(), url.encode(), hashlib.sha512).hexdigest()
         headers = {"apisign": signature}
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        j = response.json() 
+        return response.json()
+
+
+
+    def buy(self, marketName, quantity, rate):
+        log = Logger()
+        log.log("BUY!")
+        if not config.enableActualTrading:
+            return
+        url = "https://bittrex.com/api/v1.1/market/buylimit?market=%s&quantity=%s&rate=%s" % (marketName, str(quantity), str(rate))
+
+    def sell(self, market, quantity, rate): 
+        log = Logger()
+        log.log("SELL!")
+        if not config.enableActualTrading:
+            return
+
+    def getBalances(self):
+        # Return a dictionary mapping currency names to the corresponding balance
+        j = self.runMarketOperation("https://bittrex.com/api/v1.1/account/getbalances")
         if j["success"] != True:
             raise Exception(j["message"])
         
         return dict([(x["Currency"], x["Balance"]) for x in j["result"] if x["Balance"] > 0])
+
+    def wait(self):
+        time.sleep(1)
 
 # def test():
 #     ex = ExchangeWrapperForBacktesting()
@@ -131,6 +168,9 @@ def test():
     # print(len(ex.getMarketList()))
     # print(ex.getCurrentTick("BTC-LTC"))
     print(ex.getBalances())
+    # for i in ex.getSellOrderBook("BTC-MONA"):
+        # print(i)
+
 
 if __name__ == "__main__":
     test()

@@ -39,6 +39,10 @@ https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-DOGE&tickInterva
 https://bittrex.com/Api/v2.0/key/market/TradeSell
 https://bittrex.com/Api/v2.0/key/market/TradeBuy
 
+this one is great: i can get the last candle's volume without using getmarketsummaries!!!
+strangely, sometimes calling it multiple times gets different values, even if the timestamp points at the same minute
+https://bittrex.com/Api/v2.0/pub/market/GetLatestTick?marketName=BTC-CVC&tickInterval=thirtyMin&_=1500915289434 <-- l'ultimo parametro forse è ignorato?
+
 "oneMin", "fiveMin", "thirtyMin", "hour" and "day"
 V = Volume = ETH volume.
 BV = Base Volume = BTC volume. (BTC is the base because the market is "BTC-ETH")
