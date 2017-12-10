@@ -93,8 +93,17 @@ class ExchangeWrapper:
         output.ask = j["Ask"]
         output.bid = j["Bid"]
         output.timestamp = datetime.datetime.fromtimestamp(time.time())
-        print(time.clock() - initialTime)
+        # print(time.clock() - initialTime)
         return output
+
+    def getCurrentCandle(self, marketName, timeWindow = "oneMin"):
+        url = "https://bittrex.com/Api/v2.0/pub/market/GetLatestTick?marketName=%s&tickInterval=%s" % (marketName, timeWindow)
+        response = requests.get(url)
+        response.raise_for_status()
+        j = response.json()
+        if j["success"] != True:
+            raise Exception(j["message"])
+        return Candle(marketName, j["result"][0])
 
     def getMarketList(self):
         response = requests.get("https://bittrex.com/api/v1.1/public/getmarkets")
@@ -167,7 +176,8 @@ def test():
     ex = ExchangeWrapper()
     # print(len(ex.getMarketList()))
     # print(ex.getCurrentTick("BTC-LTC"))
-    print(ex.getBalances())
+    # print(ex.getBalances())
+    print(ex.getCurrentCandle("BTC-MONA"))
     # for i in ex.getSellOrderBook("BTC-MONA"):
         # print(i)
 
