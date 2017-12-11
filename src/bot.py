@@ -40,7 +40,9 @@ def main_backtesting():
 def main():
     Logger.open()
     log = Logger()
-    exchange = ExchangeWrapper()
+    # exchange = ExchangeWrapper()
+    exchange = ExchangeWrapperForBacktesting()
+
     repo_btc_ltc = MarketStatusRepository("BTC-LTC")
     repo_btc_mona = MarketStatusRepository("BTC-MONA")
     analyst = Analyst(exchange)
@@ -55,7 +57,7 @@ def main():
         repo_btc_mona.addTick(currentTick)
         print(currentTick, repo_btc_mona.getEMA("fast"))
         
-        # analyst.doTrading([repo])
+        analyst.doTrading([repo_btc_ltc, repo_btc_mona])
         exchange.wait()
     Logger.close()
 

@@ -10,7 +10,7 @@ class Analyst:
         maxValue = -1
         maxRepo = None
         for repo in marketStatusRepoList:
-            if repo.getTick().close > maxValue:
+            if repo.getTick().price > maxValue:
                 maxRepo = repo
         return maxRepo
 
@@ -23,8 +23,8 @@ class Analyst:
 
         # if config.verbose:
         #     repo.printMarketStatus()
-        #     log.log("self.currentCurrency %s; self.currentPeak %f; currTick.close %f" \
-        #              % (self.currentCurrency, self.currentPeak, currTick.close))
+        #     log.log("self.currentCurrency %s; self.currentPeak %f; currTick.price %f" \
+        #              % (self.currentCurrency, self.currentPeak, currTick.price))
         action = "NONE"
 
-        log.structuredLog({"action": action, "merda": "cacca"})
+        log.structuredLog({"action": action, "merda": "cacca", "faststmarket": fastestMarket.marketName})
