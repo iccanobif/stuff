@@ -1,10 +1,11 @@
-# import datetime, time, json, statistics
-# import config, ExchangeWrapper
+import traceback, sys
+
 from analyst import Analyst
 from exchangewrapper import ExchangeWrapperForBacktesting, ExchangeWrapper
 from logger import Logger
 from marketstatusrepository import MarketStatusRepository
 import config
+
 
 def main_backtesting():
     Logger.open()
@@ -38,28 +39,36 @@ def main_backtesting():
     print("DONE")
 
 def main():
-    Logger.open()
-    log = Logger()
-    # exchange = ExchangeWrapper()
-    exchange = ExchangeWrapperForBacktesting()
+    try:
+        Logger.open()
+        log = Logger()
+        # exchange = ExchangeWrapper()
+        exchange = ExchangeWrapperForBacktesting()
 
-    repo_btc_ltc = MarketStatusRepository("BTC-LTC")
-    repo_btc_mona = MarketStatusRepository("BTC-MONA")
-    analyst = Analyst(exchange)
-    while True:
-        # currentTick = exchange.getCurrentTick("BTC-LTC")
-        print("Nuovo ciclo...")
-        currentTick = exchange.getCurrentTick("BTC-LTC")
-        repo_btc_ltc.addTick(currentTick)
-        print(currentTick, repo_btc_ltc.getEMA("fast"))
+        Logger.sendTelegramMessage("Bot started...")
+        repo_btc_ltc = MarketStatusRepository("BTC-LTC")
+        repo_btc_mona = MarketStatusRepository("BTC-MONA")
+        analyst = Analyst(exchange)
+        while True:
+            # currentTick = exchange.getCurrentTick("BTC-LTC")
+            print("Nuovo ciclo...")
+            currentTick = exchange.getCurrentTick("BTC-LTC")
+            repo_btc_ltc.addTick(currentTick)
+            print(currentTick, repo_btc_ltc.getEMA("fast"))
 
-        currentTick = exchange.getCurrentTick("BTC-MONA")
-        repo_btc_mona.addTick(currentTick)
-        print(currentTick, repo_btc_mona.getEMA("fast"))
-        
-        analyst.doTrading([repo_btc_ltc, repo_btc_mona])
-        exchange.wait()
-    Logger.close()
+            currentTick = exchange.getCurrentTick("BTC-MONA")
+            repo_btc_mona.addTick(currentTick)
+            print(currentTick, repo_btc_mona.getEMA("fast"))
+            
+            analyst.doTrading([repo_btc_ltc, repo_btc_mona])
+            exchange.wait()
+        Logger.close()
+    except:
+        exceptionInfo = traceback.format_exc()
+        print(exceptionInfo)
+        log.log(exceptionInfo)
+        Logger.sendTelegramMessage(exceptionInfo)
+        Logger.close()
 
 if __name__ == "__main__":
     main()
