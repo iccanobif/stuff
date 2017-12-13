@@ -140,8 +140,6 @@ class ExchangeWrapper:
         response.raise_for_status()
         return response.json()
 
-
-
     def buy(self, marketName, quantity, rate):
         log = Logger()
         log.log("BUY!")
@@ -176,8 +174,8 @@ def test():
     ex = ExchangeWrapper()
     # print(len(ex.getMarketList()))
     # print(ex.getCurrentTick("BTC-LTC"))
-    # print(ex.getBalances())
-    print(ex.getCurrentCandle("BTC-MONA"))
+    print(ex.getBalances())
+    # print(ex.getCurrentCandle("BTC-MONA"))
     # for i in ex.getSellOrderBook("BTC-MONA"):
         # print(i)
 
