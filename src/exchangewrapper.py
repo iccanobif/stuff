@@ -31,7 +31,7 @@ class ExchangeWrapperForBacktesting:
             return self.currTick # Returns the current tick (it's the one I was asked for)
 
     def __init__(self):
-        self.currentTime = time.strptime("2017-09-05T22:31:00", config.timestampStringFormat)
+        self.currentTime = datetime.datetime.strptime("2017-09-05T22:31:00", config.timestampStringFormat)
         self.iterators = dict()
         
         self.currentBalance = 100
@@ -45,12 +45,17 @@ class ExchangeWrapperForBacktesting:
 
     def getCurrentTick(self, marketName):
         # Returns a Tick object
+        candle = self.iterators[marketName].get(self.currentTime)
+        return Tick(candle)
+
+    def getCurrentCandle(self, marketName):
+        # Returns a Candle object
         return self.iterators[marketName].get(self.currentTime)
 
     def wait(self):
         # Simulate the passage of time when backtesting
         # Adds 60 seconds
-        self.currentTime = time.gmtime(calendar.timegm(self.currentTime) + 60)
+        self.currentTime = self.currentTime + datetime.timedelta(seconds=60)
 
     def getMarketList(self):
         pass

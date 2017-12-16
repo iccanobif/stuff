@@ -1,4 +1,4 @@
-import time
+import datetime
 import config
 
 class Candle:
@@ -24,18 +24,27 @@ class Candle:
 
     def getTimestamp(self):
         #Example: 2017-09-05T22:28:00
-        return time.strptime(self.timestamp, config.timestampStringFormat)
+        return datetime.datetime.strptime(self.timestamp, config.timestampStringFormat)
 
     def __str__(self):
         return str(self.market + " " + self.jsonTickData["T"] + " C: " + str(self.close))
 
 class Tick:
-    def __init__(self):
-        self.market = None
-        self.price = None
-        self.ask = None
-        self.bid = None
-        self.timestamp = None # Datetime object
+    def __init__(self, candle = None):
+        # The candle parameter is only useful when "converting" a Candle to a Tick.
+        # This only makes sense when backtesting, since my backtesting data has candles, not ticks...
+        if candle is None:
+            self.market = None
+            self.price = None
+            self.ask = None
+            self.bid = None
+            self.timestamp = None # Datetime object
+        else:
+            self.market = candle.market
+            self.price = candle.close
+            self.ask = None
+            self.bid = None
+            self.timestamp = candle.getTimestamp() # Datetime object
 
     def __str__(self):
         return str(self.market + " " + self.timestamp.strftime(config.timestampStringFormat) + " value: " + str(self.price))
