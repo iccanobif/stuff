@@ -17,8 +17,11 @@ class Logger:
         if config.enableStdoutLog:
             print(string)
         
-    def structuredLog(self, obj):
-        Logger.structuredLogFile.write(json.dumps(obj) + ",\n")
+    def structuredLog(self, obj, printToStdout = False):
+        j = json.dumps(obj)
+        Logger.structuredLogFile.write(j + ",\n")
+        if printToStdout:
+            print(j)
         
     def open():
         Logger.f = open("../output_files/log.txt", "w")
