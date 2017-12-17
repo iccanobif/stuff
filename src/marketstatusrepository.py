@@ -23,6 +23,7 @@ class MarketStatusRepository:
         self.totalProcessedTicks = -1
         
     def getLastNTicks(self, tickCount):
+        # Only used internally in this class
         if self.currentTickIndex >= tickCount:
             return self.todaysTicks[self.currentTickIndex - tickCount:self.currentTickIndex + 1]
         else:
@@ -41,6 +42,13 @@ class MarketStatusRepository:
         self.todaysTicks[self.currentTickIndex] = tick
 
         self.computeEMA()
+
+    def updateWithCandleList(self, candles):
+        self.todaysTicks = candles[-config.ticksBufferSize:]
+        self.currentTickIndex = 0
+        for i in range(config.ticksBufferSize):
+            self.computeEMA()
+            self.currentTickIndex += 1
 
     def computeEMA(self):
 
@@ -88,3 +96,33 @@ class MarketStatusRepository:
         log.log("Current tick: " + str(self.todaysTicks[self.currentTickIndex]))
         log.log("    Current EMAfast: " + str(self.todaysEMAfast[self.currentTickIndex]))
         log.log("    Current EMAslow: " + str(self.todaysEMAslow[self.currentTickIndex]))
+
+import plotly
+import plotly.graph_objs as go
+import numpy as np
+import exchangewrapper
+
+def test():
+    ms = MarketStatusRepository("BTC-MONA")
+    ex = exchangewrapper.ExchangeWrapper()
+    print("Getting candles...")
+    candles = ex.GetAllCandles("BTC-MONA")
+    print("Computing stuff...")
+    ms.updateWithCandleList(candles)
+    print("Generating graph...")
+    x = list(range(0, len(ms.todaysTicks)))
+
+    coeff = max([x.close for x in ms.todaysTicks]) / max([x.volume for x in ms.todaysTicks])
+
+    pricedata = [go.Scatter(x = x, y = [x.close for x in ms.todaysTicks], name="prices"), \
+                 go.Scatter(x = x, y = [x.volume * coeff for x in ms.todaysTicks], name="volume"), \
+                 go.Scatter(x = x, y = ms.todaysEMAfast, name="fastEMA"), \
+                 go.Scatter(x = x, y = ms.todaysEMAslow, name="slowEMA"), \
+                 go.Scatter(x = x, y = [(ms.todaysEMAfast[i] - ms.todaysEMAslow[i]) * ms.todaysTicks[i].volume * 0.0001 \
+                                         for i in range(config.ticksBufferSize)], name="kek")]
+
+    plotly.offline.plot(pricedata, filename='../output_files/graph.html')
+
+    print("Done.")
+
+test()
