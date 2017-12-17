@@ -110,6 +110,15 @@ class ExchangeWrapper:
             raise Exception(j["message"])
         return Candle(marketName, j["result"][0])
 
+    def GetAllCandles(self, marketName, timeWindow = "oneMin"):
+        url = "https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=%s&tickInterval=%s" % (marketName, timeWindow)
+        response = requests.get(url)
+        response.raise_for_status()
+        j = response.json()
+        if j["success"] != True:
+            raise Exception(j["message"])
+        return [Candle(marketName, x) for x in j["result"]]
+
     def getMarketList(self):
         response = requests.get("https://bittrex.com/api/v1.1/public/getmarkets")
         response.raise_for_status()
@@ -179,7 +188,7 @@ def test():
     ex = ExchangeWrapper()
     # print(len(ex.getMarketList()))
     # print(ex.getCurrentTick("BTC-LTC"))
-    print(ex.getBalances())
+    print(ex.GetAllCandles("BTC-MONA")[0])
     # print(ex.getCurrentCandle("BTC-MONA"))
     # for i in ex.getSellOrderBook("BTC-MONA"):
         # print(i)

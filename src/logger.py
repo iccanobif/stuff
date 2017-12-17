@@ -31,7 +31,8 @@ class Logger:
         Logger.structuredLogFile.close()
 
     def sendTelegramMessage(message):
-        Logger.telegramUpdater.bot.send_message(chat_id=config.telegramChatId, text=message)
+        if config.enableTelegramIntegration:
+            Logger.telegramUpdater.bot.send_message(chat_id=config.telegramChatId, text=message)
 
 def test():
     l = Logger()

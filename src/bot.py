@@ -25,6 +25,10 @@ def handleSummaryRequest(bot, update):
 
 def initializeTelegramBot():
     global telegramUpdater
+
+    if not config.enableTelegramIntegration:
+        return
+
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
     telegramUpdater = Updater(token='500739610:AAGhPu4Z5BNefe3_86NWqNutOQAV_Ywuzm0')
     dispatcher = telegramUpdater.dispatcher
@@ -36,7 +40,7 @@ def initializeTelegramBot():
 def main_backtesting():
     Logger.open()
     log = Logger()
-    exchange = ExchangeWrapper()
+    exchange = ExchangeWrapperForBacktesting()
     btc_eth = MarketStatusRepository("BTC-ETH")
     btc_ltc = MarketStatusRepository("BTC-LTC")
     repo = MarketStatusRepository("BTC-LTC")
@@ -114,7 +118,7 @@ def main():
         Logger.sendTelegramMessage(exceptionInfo)
         Logger.close()
 
-def main():
+def mainTelegramUpdatesOnly():
     try:
         Logger.open()
         log = Logger()
@@ -133,8 +137,9 @@ def main():
         print(exceptionInfo)
         log.log(exceptionInfo)
         Logger.sendTelegramMessage(exceptionInfo)
-        telegramUpdater.stop() # If i don't do this, telegram's thread won't stop and the python interpreter will hang...
+        if telegramUpdater is not None:
+            telegramUpdater.stop() # If i don't do this, telegram's thread won't stop and the python interpreter will hang...
         Logger.close()
 
 if __name__ == "__main__":
-    main()
+    main_backtesting()
