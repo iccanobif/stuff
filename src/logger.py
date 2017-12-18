@@ -17,8 +17,11 @@ class Logger:
         if config.enableStdoutLog:
             print(string)
         
-    def structuredLog(self, obj):
-        Logger.structuredLogFile.write(json.dumps(obj) + ",\n")
+    def structuredLog(self, obj, printToStdout = False):
+        j = json.dumps(obj)
+        Logger.structuredLogFile.write(j + ",\n")
+        if printToStdout:
+            print(j)
         
     def open():
         Logger.f = open("../output_files/log.txt", "w")
@@ -31,7 +34,8 @@ class Logger:
         Logger.structuredLogFile.close()
 
     def sendTelegramMessage(message):
-        Logger.telegramUpdater.bot.send_message(chat_id=config.telegramChatId, text=message)
+        if config.enableTelegramIntegration:
+            Logger.telegramUpdater.bot.send_message(chat_id=config.telegramChatId, text=message)
 
 def test():
     l = Logger()

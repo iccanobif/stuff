@@ -30,4 +30,4 @@ class Analyst:
         #              % (self.currentCurrency, self.currentPeak, currTick.price))
         action = "NONE"
 
-        log.structuredLog({"action": action, "merda": "cacca", "faststmarket": fastestMarket.marketName})
+        log.structuredLog({"action": action, "merda": "cacca", "faststmarket": fastestMarket.marketName}, True)

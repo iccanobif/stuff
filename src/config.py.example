@@ -16,3 +16,4 @@ timestampStringFormat = "%Y-%m-%dT%H:%M:%S"
 enableActualTrading = False # If True, trade with real money, if False, merely simulates the trading
 telegramToken = ""
 telegramChatId = None
+enableTelegramIntegration = False

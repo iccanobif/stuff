@@ -18,6 +18,7 @@ class Candle:
         self.baseVolume = jsonTickData["BV"]
         self.open = jsonTickData["O"]
         self.close = jsonTickData["C"]
+        self.price = self.close # FIXME: A pretty shitty way of making code that expects Ticks work with Candles too
         self.high = jsonTickData["H"]
         self.low = jsonTickData["L"]
         self.timestamp = self.jsonTickData["T"]

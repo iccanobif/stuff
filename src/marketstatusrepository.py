@@ -1,6 +1,11 @@
 from logger import Logger
 import config
 
+import plotly
+import plotly.graph_objs as go
+import numpy as np
+import exchangewrapper
+
 class MarketStatusRepository:
     # Oggetto MarketStatusRepository, in cui posso
     # - aggiungere un nuovo tick (ogni volta che aggiungo, ricalcola subito tutte le moving average eccetera)
@@ -23,6 +28,7 @@ class MarketStatusRepository:
         self.totalProcessedTicks = -1
         
     def getLastNTicks(self, tickCount):
+        # Only used internally in this class
         if self.currentTickIndex >= tickCount:
             return self.todaysTicks[self.currentTickIndex - tickCount:self.currentTickIndex + 1]
         else:
@@ -41,6 +47,14 @@ class MarketStatusRepository:
         self.todaysTicks[self.currentTickIndex] = tick
 
         self.computeEMA()
+
+    def updateWithCandleList(self, candles):
+        self.todaysTicks = candles[-config.ticksBufferSize:]
+        self.currentTickIndex = -1
+        for i in range(config.ticksBufferSize):
+            self.currentTickIndex += 1
+            self.computeEMA()
+            
 
     def computeEMA(self):
 
@@ -88,3 +102,32 @@ class MarketStatusRepository:
         log.log("Current tick: " + str(self.todaysTicks[self.currentTickIndex]))
         log.log("    Current EMAfast: " + str(self.todaysEMAfast[self.currentTickIndex]))
         log.log("    Current EMAslow: " + str(self.todaysEMAslow[self.currentTickIndex]))
+
+    def drawPlot(self):
+
+        x = list(range(0, len(self.todaysTicks)))
+
+        coeff = max([x.close for x in self.todaysTicks]) / max([x.volume for x in self.todaysTicks])
+
+        pricedata = [go.Scatter(x = x, y = [x.close for x in self.todaysTicks], name="prices"), \
+                    go.Scatter(x = x, y = [x.volume * coeff for x in self.todaysTicks], name="volume"), \
+                    go.Scatter(x = x, y = self.todaysEMAfast, name="fastEMA"), \
+                    go.Scatter(x = x, y = self.todaysEMAslow, name="slowEMA"), \
+                    go.Scatter(x = x, y = [(self.todaysEMAfast[i] - self.todaysEMAslow[i]) * self.todaysTicks[i].volume * 0.0000001 \
+                                            for i in range(config.ticksBufferSize)], name="kek")]
+
+        plotly.offline.plot(pricedata, filename="../output_files/graph_%s.html" % self.marketName)
+
+def test():
+    ms = MarketStatusRepository("BTC-XVG")
+    ex = exchangewrapper.ExchangeWrapper()
+    print("Getting candles...")
+    candles = ex.GetAllCandles("BTC-XVG")
+    print("Computing stuff...")
+    ms.updateWithCandleList(candles)
+    print("Generating graph...")
+    ms.drawPlot()
+    print("Done.")
+
+if __name__ == "__main__":
+    test()

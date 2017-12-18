@@ -1,3 +1,3 @@
-Requirements:
+Dependencies:
 
-pip install python-telegram-bot pandas
+pip install python-telegram-bot plotly
