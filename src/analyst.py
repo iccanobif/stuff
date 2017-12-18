@@ -21,6 +21,9 @@ class Analyst:
         # find the market where (fast EMA - slow EMA) is highest
         fastestMarket = self.findFastestGrowingMarket(marketStatusRepoList)
 
+        # Keep track in this class how much value I put on a certain market, to calculate 
+        # the gains and take decisions about doing a stop loss or not
+
         # if config.verbose:
         #     repo.printMarketStatus()
         #     log.log("self.currentCurrency %s; self.currentPeak %f; currTick.price %f" \
