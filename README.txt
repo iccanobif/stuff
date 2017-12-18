@@ -1,3 +1,3 @@
 Dependencies:
 
-pip install python-telegram-bot plotly
+pip install python-telegram-bot plotly requests

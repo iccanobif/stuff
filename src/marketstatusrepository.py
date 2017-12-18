@@ -50,8 +50,11 @@ class MarketStatusRepository:
 
     def updateWithCandleList(self, candles):
         self.todaysTicks = candles[-config.ticksBufferSize:]
+        if len(candles) < config.ticksBufferSize:
+            # Add padding if the candles aren't enough to fill the entire buffer
+            self.todaysTicks += [None for x in range(config.ticksBufferSize - len(candles))]
         self.currentTickIndex = -1
-        for i in range(config.ticksBufferSize):
+        for i in range(min(config.ticksBufferSize, len(candles))):
             self.currentTickIndex += 1
             self.computeEMA()
             
