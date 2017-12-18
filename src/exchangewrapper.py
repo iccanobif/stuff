@@ -122,9 +122,19 @@ class ExchangeWrapper:
     def getMarketList(self):
         response = requests.get("https://bittrex.com/api/v1.1/public/getmarkets")
         response.raise_for_status()
+        j = response.json()
         if j["success"] != True:
             raise Exception(j["message"])
         return [x for x in response.json()["result"] if x["BaseCurrency"] == "BTC"]
+
+    def getMarketSummary(self):
+        # This one's got statistics for the last 24 hours
+        response = requests.get("https://bittrex.com/api/v1.1/public/getmarketsummaries")
+        response.raise_for_status()
+        j = response.json()
+        if j["success"] != True:
+            raise Exception(j["message"])
+        return [x for x in response.json()["result"] if x["MarketName"].startswith("BTC-")]
 
     def getSellOrderBook(self, marketName):
         url = "https://bittrex.com/api/v1.1/public/getorderbook?market=%s&type=sell" % marketName
@@ -188,10 +198,12 @@ def test():
     ex = ExchangeWrapper()
     # print(len(ex.getMarketList()))
     # print(ex.getCurrentTick("BTC-LTC"))
-    print(ex.GetAllCandles("BTC-MONA")[0])
+    # print(ex.GetAllCandles("BTC-MONA")[0])
     # print(ex.getCurrentCandle("BTC-MONA"))
     # for i in ex.getSellOrderBook("BTC-MONA"):
         # print(i)
+    for m in ex.getMarketSummary():        
+        print(m["MarketName"], m["BaseVolume"])
 
 
 if __name__ == "__main__":
