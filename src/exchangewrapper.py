@@ -148,7 +148,7 @@ class ExchangeWrapper:
     def getBuyOrderBook(self, marketName):
         url = "https://bittrex.com/api/v1.1/public/getorderbook?market=%s&type=buy" % marketName
 
-    def runMarketOperation(self, url):
+    def runMarketOperation(self, url, postParameters=None):
         # Handles all the HMAC authentication stuff
         # Check wether in the url there are already GET parameters or not
         if url.find("?") < 0:
@@ -160,22 +160,53 @@ class ExchangeWrapper:
         url = url + "apikey=%s&nonce=%s" % (config.bittrexKey, nonce)
         signature = hmac.new(config.bittrexSecret.encode(), url.encode(), hashlib.sha512).hexdigest()
         headers = {"apisign": signature}
-        response = requests.get(url, headers=headers)
+        response = None
+        if postParameters is None:
+            response = requests.get(url, headers=headers)
+        else:
+            response = requests.post(url, data=postParameters)
         response.raise_for_status()
         return response.json()
 
-    def buy(self, marketName, quantity, rate):
+    def buyLimit(self, marketName, quantity, rate):
+        # The quantity is in the target currency, I think
         log = Logger()
         log.log("BUY!")
         if not config.enableActualTrading:
             return
         url = "https://bittrex.com/api/v1.1/market/buylimit?market=%s&quantity=%s&rate=%s" % (marketName, str(quantity), str(rate))
+        j = self.runMarketOperation(url)
+        if j["success"] != True:
+            raise Exception(j["message"])
 
-    def sell(self, market, quantity, rate): 
+    def sellLimit(self, market, quantity, rate): 
+        # The quantity is in the target currency, I think
         log = Logger()
         log.log("SELL!")
         if not config.enableActualTrading:
             return
+        
+
+    def buy(self, marketName, quantity, rate):
+        # Fill-or-kill buy
+        log = Logger()
+        log.log("BUY!")
+        if not config.enableActualTrading:
+            return
+        url = "https://bittrex.com/Api/v2.0/key/market/TradeSell"
+        params = {
+            "ConditionType": "NONE", \
+            "MarketName": marketName, \
+            "OrderType": "LIMIT", \
+            "Quantity": str(quantity), \
+            "Rate": str(rate), \
+            "Target": 0, \
+            "TimeInEffect": "IMMEDIATE_OR_CANCEL"}
+        j = self.runMarketOperation(url)
+        print(j)
+        if j["success"] != True:
+            raise Exception(j["message"])
+        return j["result"]
 
     def getBalances(self):
         # Return a dictionary mapping currency names to the corresponding balance
@@ -194,7 +225,11 @@ class ExchangeWrapper:
 #         print(ex.getCurrentTick("BTC-LTC"))
 #         ex.wait()
 
+#TODO: Make a single ExchangeWrapper that depends on a BacktestingExchangeWrapper class
+#      and a BittrexExchangeWrapper class
+
 def test():
+    Logger.open()
     ex = ExchangeWrapper()
     # print(len(ex.getMarketList()))
     # print(ex.getCurrentTick("BTC-LTC"))
@@ -202,9 +237,10 @@ def test():
     # print(ex.getCurrentCandle("BTC-MONA"))
     # for i in ex.getSellOrderBook("BTC-MONA"):
         # print(i)
-    for m in ex.getMarketSummary():        
-        print(m["MarketName"], m["BaseVolume"])
-
+    # for m in ex.getMarketSummary():        
+    #     print(m["MarketName"], m["BaseVolume"])
+    print(ex.buy("BTC-BCC", quantity=0.01, rate=0.00001))
+    Logger.close()
 
 if __name__ == "__main__":
     test()

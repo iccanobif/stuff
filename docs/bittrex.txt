@@ -37,7 +37,39 @@ API v2!!!!
 Prende le candele di un mercato
 https://bittrex.com/Api/v2.0/pub/market/GetTicks?marketName=BTC-DOGE&tickInterval=day
 https://bittrex.com/Api/v2.0/key/market/TradeSell
+    - Importante usare questa, che ha fill-or-kill
+    - dalla GUI vedo che c'e' IMMEDIATE_OR_CANCEL, ma leggo su internet che esiste anche FILL_OR_KILL... che differenza c'e'?
+    - Come autenticazione forse va bene anche usare lo stesso metodo della v1.1, il wrapper node.js non sembra fare differenza
+
+    Parametri da usare in POST:
+
+    __RequestVerificationToken	dfsafdsafsdafsdafs
+    ConditionType	NONE
+    MarketName	BTC-BCC
+    OrderType	LIMIT
+    Quantity	1.00000000 # E' la quantità della valuta target
+    Rate	0.00100000
+    Target	0
+    TimeInEffect	IMMEDIATE_OR_CANCEL
+
+
+    risponde con : 
+    {
+        "success": true,
+        "message": "",
+        "result": {
+            "OrderId": "some guid",
+            "MarketName": "BTC-BCC",
+            "MarketCurrency": "BCC",
+            "BuyOrSell": "Buy",
+            "OrderType": "LIMIT",
+            "Quantity": 1.00000000,
+            "Rate": 0.00100000
+        }
+    }
+
 https://bittrex.com/Api/v2.0/key/market/TradeBuy
+
 
 this one is great: i can get the last candle's volume without using getmarketsummaries!!!
 strangely, sometimes calling it multiple times gets different values, even if the timestamp points at the same minute

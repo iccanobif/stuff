@@ -62,7 +62,7 @@ def main():
         exchange = ExchangeWrapper()
         analyst = Analyst(exchange)
         marketRepos = dict() # TODO: Markets can appear and disappear, with time...
-        for marketName in [x["MarketName"] for x in exchange.getMarketSummary() if x["BaseVolume"] > 1000]:
+        for marketName in [x["MarketName"] for x in exchange.getMarketSummary() if x["BaseVolume"] > 3000]:
             marketRepos[marketName] = MarketStatusRepository(marketName) 
         while True:
             for market in marketRepos.keys():
