@@ -91,12 +91,14 @@ class ExchangeWrapper:
         initialTime = time.clock()
         response = requests.get("https://bittrex.com/api/v1.1/public/getticker?market=%s" % marketName)
         response.raise_for_status()
-        j = response.json()["result"]
+        j = response.json()
+        if j["success"] != True:
+            raise Exception(j["message"])
         output = Tick()
         output.market = marketName
-        output.price = j["Last"]
-        output.ask = j["Ask"]
-        output.bid = j["Bid"]
+        output.price = j["result"]["Last"]
+        output.ask = j["result"]["Ask"]
+        output.bid = j["result"]["Bid"]
         output.timestamp = datetime.datetime.fromtimestamp(time.time())
         # print(time.clock() - initialTime)
         return output

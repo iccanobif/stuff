@@ -3,7 +3,7 @@ import requests
 
 from telegram.ext import Updater, CommandHandler
 
-from exchangewrapper import ExchangeWrapperForBacktesting, ExchangeWrapper
+from exchangewrapper import ExchangeWrapper
 from logger import Logger
 import config
 import utilities
@@ -22,7 +22,7 @@ def main():
             time.sleep(60*10) # 10 minutes
         Logger.close()
     except:
-        print("eccezione gestita...")
+        log.log("eccezione gestita...")
         exceptionInfo = traceback.format_exc()
         print(exceptionInfo)
         log.log(exceptionInfo)
