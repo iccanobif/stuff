@@ -11,7 +11,6 @@ import utilities
 def main():
     try:
         Logger.open()
-        log = Logger()
         utilities.initializeTelegramBot()
 
         exchange = ExchangeWrapper()
@@ -22,10 +21,10 @@ def main():
             time.sleep(60*10) # 10 minutes
         Logger.close()
     except:
-        log.log("eccezione gestita...")
+        Logger.log("eccezione gestita...")
         exceptionInfo = traceback.format_exc()
         print(exceptionInfo)
-        log.log(exceptionInfo)
+        Logger.log(exceptionInfo)
         Logger.sendTelegramMessage(exceptionInfo)
         
         if utilities.isTelegramUpdaterActive():

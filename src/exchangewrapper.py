@@ -17,9 +17,8 @@ class ExchangeWrapperForBacktesting:
                 return None
             # Can't ask for ticks that were already read
             if self.currTick is not None and timestamp < self.currTick.getTimestamp():
-                log = Logger()
-                log.log("timestamp " + str(timestamp))
-                log.log("currTick.getTimestamp " + str(self.currTick.getTimestamp()))
+                Logger.log("timestamp " + str(timestamp))
+                Logger.log("currTick.getTimestamp " + str(self.currTick.getTimestamp()))
                 raise Exception("timestamp:")
             # If asked for tick in the future, go find it even if i have to skip some
             while self.currTick is None or self.currTick.getTimestamp() < timestamp:
@@ -64,8 +63,7 @@ class ExchangeWrapperForBacktesting:
         # 1 CURR = rate BTC
         if self.currentCurrency != "BTC":
             raise Exception("Already bought!")
-        log = Logger()
-        log.log("BUY!")
+        Logger.log("BUY!")
         self.currentBalance = self.currentBalance / rate * config.bittrexCommission
         self.currentCurrency = market.split("-")[1]
 
@@ -73,8 +71,7 @@ class ExchangeWrapperForBacktesting:
     def sell(self, market, quantity, rate): 
         if self.currentCurrency == "BTC":
             raise Exception("Already sold!")
-        log = Logger()
-        log.log("SELL!")
+        Logger.log("SELL!")
         self.currentBalance = self.currentBalance * rate * config.bittrexCommission
         self.currentCurrency = "BTC"
 
@@ -172,8 +169,7 @@ class ExchangeWrapper:
 
     def buyLimit(self, marketName, quantity, rate):
         # The quantity is in the target currency, I think
-        log = Logger()
-        log.log("BUY!")
+        Logger.log("BUY!")
         if not config.enableActualTrading:
             return
         url = "https://bittrex.com/api/v1.1/market/buylimit?market=%s&quantity=%s&rate=%s" % (marketName, str(quantity), str(rate))
@@ -183,16 +179,14 @@ class ExchangeWrapper:
 
     def sellLimit(self, market, quantity, rate): 
         # The quantity is in the target currency, I think
-        log = Logger()
-        log.log("SELL!")
+        Logger.log("SELL!")
         if not config.enableActualTrading:
             return
         
 
     def buy(self, marketName, quantity, rate):
         # Fill-or-kill buy
-        log = Logger()
-        log.log("BUY!")
+        Logger.log("BUY!")
         if not config.enableActualTrading:
             return
         url = "https://bittrex.com/Api/v2.0/key/market/TradeSell"

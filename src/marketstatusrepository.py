@@ -101,10 +101,9 @@ class MarketStatusRepository:
         raise Exception("meh")
         
     def printMarketStatus(self):
-        log = Logger()
-        log.log("Current tick: " + str(self.todaysTicks[self.currentTickIndex]))
-        log.log("    Current EMAfast: " + str(self.todaysEMAfast[self.currentTickIndex]))
-        log.log("    Current EMAslow: " + str(self.todaysEMAslow[self.currentTickIndex]))
+        Logger.log("Current tick: " + str(self.todaysTicks[self.currentTickIndex]))
+        Logger.log("    Current EMAfast: " + str(self.todaysEMAfast[self.currentTickIndex]))
+        Logger.log("    Current EMAslow: " + str(self.todaysEMAslow[self.currentTickIndex]))
 
     def drawPlot(self):
 

@@ -11,7 +11,6 @@ from telegram.ext import Updater, CommandHandler
 def main():
     try:
         Logger.open()
-        log = Logger()
         Logger.sendTelegramMessage("Bot started...")
         exchange = ExchangeWrapper()
         analyst = Analyst(exchange)
@@ -29,7 +28,7 @@ def main():
     except:
         exceptionInfo = traceback.format_exc()
         print(exceptionInfo)
-        log.log(exceptionInfo)
+        Logger.log(exceptionInfo)
         Logger.sendTelegramMessage(exceptionInfo)
         Logger.close()
 
