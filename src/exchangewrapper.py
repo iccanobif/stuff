@@ -239,7 +239,8 @@ def test():
         # print(i)
     # for m in ex.getMarketSummary():        
     #     print(m["MarketName"], m["BaseVolume"])
-    print(ex.buy("BTC-BCC", quantity=0.01, rate=0.00001))
+    # print(ex.buy("BTC-BCC", quantity=0.01, rate=0.00001))
+    print(ex.getBalances())
     Logger.close()
 
 if __name__ == "__main__":
