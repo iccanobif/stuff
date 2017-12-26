@@ -63,5 +63,9 @@ def getBTCPriceInEuro():
         # I don't care if CoinMarketCap is down or something, this function should never throw exceptions
         return 0 
 
+def prettyPrintJSON(j):
+    for i in j:
+        print("   ", i, j[i])
+
 if __name__ == "__main__":
     print(getCurrentHoldings())

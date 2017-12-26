@@ -20,7 +20,7 @@ def main():
 
         while True:
             # time.sleep(60*10) # 10 minutes
-            time.sleep(1)
+            time.sleep(10)
             Logger.log("New iteration...")
             currentValues = dict([(b, exchange.getCurrentTick("BTC-" + b).price) \
                                   for b \
@@ -31,13 +31,11 @@ def main():
 
             # If one or more coins were sold directly from coinbase (or some other bot), delete their
             # values from maxValues
-
             for coin in maxValues.keys():
                 if coin not in currentlyHeldCoins:
                     del maxValues[coin]
 
             # Update the values
-
             for currency in currentlyHeldCoins:
                 if currency not in maxValues:
                     maxValues[currency] = currentValues[currency]
@@ -52,7 +50,7 @@ def main():
             for currency in currentlyHeldCoins:
                 if currentValues[currency] < maxValues[currency] * config.stopLossPercentage:
                     Logger.log(currency + "STOOOOP!")
-
+                    exchange.marketSell("BTC-" + currency, exchange.getBalances()[currency])
 
         Logger.close()
     except:

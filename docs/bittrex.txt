@@ -41,6 +41,8 @@ https://bittrex.com/Api/v2.0/key/market/TradeSell
     - dalla GUI vedo che c'e' IMMEDIATE_OR_CANCEL, ma leggo su internet che esiste anche FILL_OR_KILL... che differenza c'e'?
     - Come autenticazione forse va bene anche usare lo stesso metodo della v1.1, il wrapper node.js non sembra fare differenza
 
+    'IMMEDIATE_OR_CANCEL', 'GOOD_TIL_CANCELLED', 'FILL_OR_KILL'
+
     Parametri da usare in POST:
 
     __RequestVerificationToken	dfsafdsafsdafsdafs
@@ -67,6 +69,59 @@ https://bittrex.com/Api/v2.0/key/market/TradeSell
             "Rate": 0.00100000
         }
     }
+
+Example responses for a getorder:
+
+Failed order:
+    AccountId None
+    OrderUuid guid
+    Exchange BTC-XRP
+    Type LIMIT_SELL
+    Quantity 24.0
+    QuantityRemaining 24.0
+    Limit 0.00063
+    Reserved 24.0
+    ReserveRemaining 24.0
+    CommissionReserved 0.0
+    CommissionReserveRemaining 0.0
+    CommissionPaid 0.0
+    Price 0.0
+    PricePerUnit None
+    Opened 2017-12-26T10:29:22.88
+    Closed 2017-12-26T10:29:22.91
+    IsOpen False
+    Sentinel guid
+    CancelInitiated False
+    ImmediateOrCancel True
+    IsConditional False
+    Condition NONE
+    ConditionTarget None
+
+
+Succesful order:
+    AccountId None
+    OrderUuid guid
+    Exchange BTC-XRP
+    Type LIMIT_SELL
+    Quantity 8.0
+    QuantityRemaining 0.0
+    Limit 6.3e-05    # Price that I choose
+    Reserved 8.0
+    ReserveRemaining 8.0
+    CommissionReserved 0.0
+    CommissionReserveRemaining 0.0
+    CommissionPaid 1.32e-06  # Bittrex fees paid (in BTC)
+    Price 0.0005292
+    PricePerUnit 6.615e-05   # Price at the moment 
+    Opened 2017-12-26T10:25:33.467
+    Closed 2017-12-26T10:25:33.577
+    IsOpen False
+    Sentinel guid
+    CancelInitiated False
+    ImmediateOrCancel True
+    IsConditional False
+    Condition NONE
+    ConditionTarget None
 
 https://bittrex.com/Api/v2.0/key/market/TradeBuy
 
