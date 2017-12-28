@@ -172,7 +172,10 @@ class ExchangeWrapper:
         else:
             response = requests.post(url, headers=headers, data=postParameters)
         response.raise_for_status()
-        return response.json()
+        j = response.json()
+        if j["success"] != True:
+            raise Exception(j["message"])
+        return j
 
     def buyLimit(self, marketName, quantity, rate):
         # The quantity is in the target currency, I think
@@ -181,8 +184,7 @@ class ExchangeWrapper:
             return
         url = "https://bittrex.com/api/v1.1/market/buylimit?market=%s&quantity=%s&rate=%s" % (marketName, str(quantity), str(rate))
         j = self.runMarketOperation(url)
-        if j["success"] != True:
-            raise Exception(j["message"])
+        
 
     def sellLimit(self, market, quantity, rate):
         # The quantity is in the target currency, I think
@@ -208,9 +210,6 @@ class ExchangeWrapper:
             "Target": 0, \
             "TimeInEffect": "IMMEDIATE_OR_CANCEL"} # Possible values: 'IMMEDIATE_OR_CANCEL', 'GOOD_TIL_CANCELLED', 'FILL_OR_KILL'
         j = self.runMarketOperation(url, postParameters=params)
-        print(j)
-        if j["success"] != True:
-            raise Exception(j["message"])
         return j["result"]
 
     def marketSell(self, marketName, quantity):
@@ -221,24 +220,28 @@ class ExchangeWrapper:
         # or the quantity is so low that there's nobody willing to buy it at a rate that would make it worth more
         # than 50k sats, for example trying to sell 7 XRP when the current price is less than 7142 satoshi)
 
+        # TODO: Cancel all pending sell orders for this market:
+
         rate=0.0005/quantity # This is the rate that makes the estimated bitcoin value of the sale of "quantity" coins equal to 50k sats
         Logger.log("Trying to sell %f on market %s" % (quantity, marketName))
         result = self.sell(marketName, quantity, rate)
         order = self.getOrder(result["OrderId"])
         return order["QuantityRemaining"]
 
+    def getOrderHistory(self):
+        #
+        # Gets old orders... Not particularly useful for me
+        #
+        j = self.runMarketOperation("https://bittrex.com/api/v1.1/account/getorderhistory")
+        return j
+
     def getOrder(self, orderId):
         j = self.runMarketOperation("https://bittrex.com/api/v1.1/account/getorder?uuid=%s" % orderId)
-        if j["success"] != True:
-            raise Exception(j["message"])
         return j["result"]
 
     def getBalances(self):
         # Return a dictionary mapping currency names to the corresponding balance
         j = self.runMarketOperation("https://bittrex.com/api/v1.1/account/getbalances")
-        if j["success"] != True:
-            raise Exception(j["message"])
-
         return dict([(x["Currency"], x["Balance"]) for x in j["result"] if x["Balance"] > 0])
 
     def wait(self):
@@ -274,6 +277,7 @@ def test():
     # print(ex.getBuyOrderBook("BTC-XRP"))
 
     # print(ex.getBalances())
+    print(utilities.prettyPrintJSONVertical(ex.getOrderHistory()))
     Logger.close()
 
 if __name__ == "__main__":

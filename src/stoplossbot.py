@@ -31,7 +31,7 @@ def main():
 
             # If one or more coins were sold directly from coinbase (or some other bot), delete their
             # values from maxValues
-            for coin in maxValues.keys():
+            for coin in list(maxValues.keys()):
                 if coin not in currentlyHeldCoins:
                     del maxValues[coin]
 
@@ -43,13 +43,13 @@ def main():
                     if maxValues[currency] < currentValues[currency]:
                         maxValues[currency] = currentValues[currency]
 
-            Logger.log("maxValues:     " + str(maxValues))
-            Logger.log("currentValues: " + str(currentValues))
+            Logger.log("maxValues:     " + utilities.prettyPrintJSONHorizontal(maxValues))
+            Logger.log("currentValues: " + utilities.prettyPrintJSONHorizontal(currentValues))
 
             # Check if some coin is below the stop-loss threshold
             for currency in currentlyHeldCoins:
                 if currentValues[currency] < maxValues[currency] * config.stopLossPercentage:
-                    Logger.log(currency + "STOOOOP!")
+                    Logger.log("STOOOOP! %s is tanking." % currency)
                     exchange.marketSell("BTC-" + currency, exchange.getBalances()[currency])
 
         Logger.close()

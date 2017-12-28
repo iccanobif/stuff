@@ -1,8 +1,8 @@
-import traceback, sys, time, logging
+import traceback, sys, time, logging, json
 import requests
 
 from analyst import Analyst
-from exchangewrapper import ExchangeWrapperForBacktesting, ExchangeWrapper
+from exchangewrapper import ExchangeWrapper
 from logger import Logger
 from marketstatusrepository import MarketStatusRepository
 import config
@@ -63,9 +63,13 @@ def getBTCPriceInEuro():
         # I don't care if CoinMarketCap is down or something, this function should never throw exceptions
         return 0 
 
-def prettyPrintJSON(j):
-    for i in j:
-        print("   ", i, j[i])
+def prettyPrintJSONVertical(j):
+    # for i in j:
+    #     print("   ", i, j[i])
+    return json.dumps(j, sort_keys=True, indent=4)
+
+def prettyPrintJSONHorizontal(j):
+    return json.dumps(j, sort_keys=True)
 
 if __name__ == "__main__":
     print(getCurrentHoldings())
