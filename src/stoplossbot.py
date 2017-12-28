@@ -43,8 +43,8 @@ def main():
                     if maxValues[currency] < currentValues[currency]:
                         maxValues[currency] = currentValues[currency]
 
-            Logger.log("maxValues:     " + str(maxValues))
-            Logger.log("currentValues: " + str(currentValues))
+            Logger.log("maxValues:     " + utilities.prettyPrintJSONHorizontal(maxValues))
+            Logger.log("currentValues: " + utilities.prettyPrintJSONHorizontal(currentValues))
 
             # Check if some coin is below the stop-loss threshold
             for currency in currentlyHeldCoins:
