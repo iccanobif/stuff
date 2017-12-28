@@ -50,8 +50,11 @@ class MarketStatusRepository:
 
     def updateWithCandleList(self, candles):
         self.todaysTicks = candles[-config.ticksBufferSize:]
+        if len(candles) < config.ticksBufferSize:
+            # Add padding if the candles aren't enough to fill the entire buffer
+            self.todaysTicks += [None for x in range(config.ticksBufferSize - len(candles))]
         self.currentTickIndex = -1
-        for i in range(config.ticksBufferSize):
+        for i in range(min(config.ticksBufferSize, len(candles))):
             self.currentTickIndex += 1
             self.computeEMA()
             
@@ -98,10 +101,9 @@ class MarketStatusRepository:
         raise Exception("meh")
         
     def printMarketStatus(self):
-        log = Logger()
-        log.log("Current tick: " + str(self.todaysTicks[self.currentTickIndex]))
-        log.log("    Current EMAfast: " + str(self.todaysEMAfast[self.currentTickIndex]))
-        log.log("    Current EMAslow: " + str(self.todaysEMAslow[self.currentTickIndex]))
+        Logger.log("Current tick: " + str(self.todaysTicks[self.currentTickIndex]))
+        Logger.log("    Current EMAfast: " + str(self.todaysEMAfast[self.currentTickIndex]))
+        Logger.log("    Current EMAslow: " + str(self.todaysEMAslow[self.currentTickIndex]))
 
     def drawPlot(self):
 

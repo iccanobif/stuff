@@ -1,6 +1,6 @@
 import datetime, calendar, json, os, time, requests, hashlib, hmac
 
-import config
+import config, utilities
 from dtos import Candle, Tick
 from logger import Logger
 
@@ -17,9 +17,8 @@ class ExchangeWrapperForBacktesting:
                 return None
             # Can't ask for ticks that were already read
             if self.currTick is not None and timestamp < self.currTick.getTimestamp():
-                log = Logger()
-                log.log("timestamp " + str(timestamp))
-                log.log("currTick.getTimestamp " + str(self.currTick.getTimestamp()))
+                Logger.log("timestamp " + str(timestamp))
+                Logger.log("currTick.getTimestamp " + str(self.currTick.getTimestamp()))
                 raise Exception("timestamp:")
             # If asked for tick in the future, go find it even if i have to skip some
             while self.currTick is None or self.currTick.getTimestamp() < timestamp:
@@ -33,7 +32,7 @@ class ExchangeWrapperForBacktesting:
     def __init__(self):
         self.currentTime = datetime.datetime.strptime("2017-09-05T22:31:00", config.timestampStringFormat)
         self.iterators = dict()
-        
+
         self.currentBalance = 100
         self.currentCurrency = config.baseCurrency
 
@@ -64,17 +63,15 @@ class ExchangeWrapperForBacktesting:
         # 1 CURR = rate BTC
         if self.currentCurrency != "BTC":
             raise Exception("Already bought!")
-        log = Logger()
-        log.log("BUY!")
+        Logger.log("BUY!")
         self.currentBalance = self.currentBalance / rate * config.bittrexCommission
         self.currentCurrency = market.split("-")[1]
 
     #TODO: make quantity and rate optional, at least for the backtester
-    def sell(self, market, quantity, rate): 
+    def sell(self, market, quantity, rate):
         if self.currentCurrency == "BTC":
             raise Exception("Already sold!")
-        log = Logger()
-        log.log("SELL!")
+        Logger.log("SELL!")
         self.currentBalance = self.currentBalance * rate * config.bittrexCommission
         self.currentCurrency = "BTC"
 
@@ -91,12 +88,14 @@ class ExchangeWrapper:
         initialTime = time.clock()
         response = requests.get("https://bittrex.com/api/v1.1/public/getticker?market=%s" % marketName)
         response.raise_for_status()
-        j = response.json()["result"]
+        j = response.json()
+        if j["success"] != True:
+            raise Exception(j["message"])
         output = Tick()
         output.market = marketName
-        output.price = j["Last"]
-        output.ask = j["Ask"]
-        output.bid = j["Bid"]
+        output.price = j["result"]["Last"]
+        output.ask = j["result"]["Ask"]
+        output.bid = j["result"]["Bid"]
         output.timestamp = datetime.datetime.fromtimestamp(time.time())
         # print(time.clock() - initialTime)
         return output
@@ -147,42 +146,99 @@ class ExchangeWrapper:
 
     def getBuyOrderBook(self, marketName):
         url = "https://bittrex.com/api/v1.1/public/getorderbook?market=%s&type=buy" % marketName
+        response = requests.get(url)
+        response.raise_for_status()
+        j = response.json()
+        if j["success"] != True:
+            raise Exception(j["message"])
+        return j["result"]
 
-    def runMarketOperation(self, url):
+    def runMarketOperation(self, url, postParameters=None):
         # Handles all the HMAC authentication stuff
         # Check wether in the url there are already GET parameters or not
+        # TODO: More elegant to use requests.get()'s "params" parameter
         if url.find("?") < 0:
             url = url + "?"
         else:
             url = url + "&"
 
-        nonce = int(time.time())    
+        nonce = int(time.time())
         url = url + "apikey=%s&nonce=%s" % (config.bittrexKey, nonce)
         signature = hmac.new(config.bittrexSecret.encode(), url.encode(), hashlib.sha512).hexdigest()
         headers = {"apisign": signature}
-        response = requests.get(url, headers=headers)
+        response = None
+        if postParameters is None:
+            response = requests.get(url, headers=headers)
+        else:
+            response = requests.post(url, headers=headers, data=postParameters)
         response.raise_for_status()
         return response.json()
 
-    def buy(self, marketName, quantity, rate):
-        log = Logger()
-        log.log("BUY!")
+    def buyLimit(self, marketName, quantity, rate):
+        # The quantity is in the target currency, I think
+        Logger.log("BUY!")
         if not config.enableActualTrading:
             return
         url = "https://bittrex.com/api/v1.1/market/buylimit?market=%s&quantity=%s&rate=%s" % (marketName, str(quantity), str(rate))
+        j = self.runMarketOperation(url)
+        if j["success"] != True:
+            raise Exception(j["message"])
 
-    def sell(self, market, quantity, rate): 
-        log = Logger()
-        log.log("SELL!")
+    def sellLimit(self, market, quantity, rate):
+        # The quantity is in the target currency, I think
+        Logger.log("SELL!")
         if not config.enableActualTrading:
             return
+
+    def sell(self, marketName, quantity, rate):
+        # This one uses the v2.0 API
+        #
+        # quantity/rate must be > 0,0005
+        # quantity must be > MinTradeSize (get it with GetMarkets)
+        Logger.log("SELL!")
+        if not config.enableActualTrading:
+            return
+        url = "https://bittrex.com/Api/v2.0/key/market/TradeSell"
+        params = {
+            "ConditionType": "NONE", \
+            "MarketName": marketName, \
+            "OrderType": "LIMIT", \
+            "Quantity": str(quantity), \
+            "Rate": str(rate), \
+            "Target": 0, \
+            "TimeInEffect": "IMMEDIATE_OR_CANCEL"} # Possible values: 'IMMEDIATE_OR_CANCEL', 'GOOD_TIL_CANCELLED', 'FILL_OR_KILL'
+        j = self.runMarketOperation(url, postParameters=params)
+        print(j)
+        if j["success"] != True:
+            raise Exception(j["message"])
+        return j["result"]
+
+    def marketSell(self, marketName, quantity):
+        # Simulates a market sell by selling at the lowest price that wouldn't trigger a
+        # DUST_TRADE_DISALLOWED_MIN_VALUE_50K_SAT error, trusting that bittrex will sell at the best
+        # prices available anyway (r-right?).
+        # Returns the amount of coins that weren't sold (it should happen only if the buy orderbook is empty
+        # or the quantity is so low that there's nobody willing to buy it at a rate that would make it worth more
+        # than 50k sats, for example trying to sell 7 XRP when the current price is less than 7142 satoshi)
+
+        rate=0.0005/quantity # This is the rate that makes the estimated bitcoin value of the sale of "quantity" coins equal to 50k sats
+        Logger.log("Trying to sell %f on market %s" % (quantity, marketName))
+        result = self.sell(marketName, quantity, rate)
+        order = self.getOrder(result["OrderId"])
+        return order["QuantityRemaining"]
+
+    def getOrder(self, orderId):
+        j = self.runMarketOperation("https://bittrex.com/api/v1.1/account/getorder?uuid=%s" % orderId)
+        if j["success"] != True:
+            raise Exception(j["message"])
+        return j["result"]
 
     def getBalances(self):
         # Return a dictionary mapping currency names to the corresponding balance
         j = self.runMarketOperation("https://bittrex.com/api/v1.1/account/getbalances")
         if j["success"] != True:
             raise Exception(j["message"])
-        
+
         return dict([(x["Currency"], x["Balance"]) for x in j["result"] if x["Balance"] > 0])
 
     def wait(self):
@@ -194,7 +250,11 @@ class ExchangeWrapper:
 #         print(ex.getCurrentTick("BTC-LTC"))
 #         ex.wait()
 
+#TODO: Make a single ExchangeWrapper that depends on a BacktestingExchangeWrapper class
+#      and a BittrexExchangeWrapper class
+
 def test():
+    Logger.open()
     ex = ExchangeWrapper()
     # print(len(ex.getMarketList()))
     # print(ex.getCurrentTick("BTC-LTC"))
@@ -202,9 +262,19 @@ def test():
     # print(ex.getCurrentCandle("BTC-MONA"))
     # for i in ex.getSellOrderBook("BTC-MONA"):
         # print(i)
-    for m in ex.getMarketSummary():        
-        print(m["MarketName"], m["BaseVolume"])
+    # for m in ex.getMarketSummary():
+    #     print(m["MarketName"], m["BaseVolume"])
 
+    # print(ex.sell("BTC-XRP", quantity=8, rate=0.00006300))
+    # print(ex.sell("BTC-XRP", quantity=24, rate=0.0006300))
+    # print(ex.sell("BTC-XRP", quantity=8, rate=0.0005/8))
+
+    # print(ex.marketSell("BTC-XRP", 8))
+    # utilities.prettyPrintJSON(ex.getOrder("orderid"))
+    # print(ex.getBuyOrderBook("BTC-XRP"))
+
+    # print(ex.getBalances())
+    Logger.close()
 
 if __name__ == "__main__":
     test()

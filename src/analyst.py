@@ -16,7 +16,6 @@ class Analyst:
 
     def doTrading(self, marketStatusRepoList):
         """here do stuff on the exchange depending on the info I get from the marketStatus"""
-        log = Logger()
         
         # find the market where (fast EMA - slow EMA) is highest
         fastestMarket = self.findFastestGrowingMarket(marketStatusRepoList)
@@ -26,7 +25,7 @@ class Analyst:
 
         # if config.verbose:
         #     repo.printMarketStatus()
-        #     log.log("self.currentCurrency %s; self.currentPeak %f; currTick.price %f" \
+        #     Logger.log("self.currentCurrency %s; self.currentPeak %f; currTick.price %f" \
         #              % (self.currentCurrency, self.currentPeak, currTick.price))
         action = "NONE"
 
