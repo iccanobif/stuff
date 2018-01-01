@@ -22,7 +22,7 @@ def getCurrentHoldings():
             btcValue = exchange.getCurrentTick("BTC-" + currency).price * balances[currency]
         totalBtcValue += btcValue
         output += "%f %s (%f BTC)\n" % (balances[currency], currency, btcValue)
-    output += "\nBTC total: %f (%f EURO)" % (totalBtcValue, totalBtcValue * getBTCPriceInEuro())
+    output += "\nBTC total: %f (%f EURO)" % (totalBtcValue, totalBtcValue * utilities.getBTCPriceInEuro())
     
     return output
 

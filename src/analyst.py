@@ -27,6 +27,16 @@ class Analyst:
         #     repo.printMarketStatus()
         #     Logger.log("self.currentCurrency %s; self.currentPeak %f; currTick.price %f" \
         #              % (self.currentCurrency, self.currentPeak, currTick.price))
+
+        # Cool algo idea:
+        # define the mooning index for a candle as:
+        # Original idea (full of problems): a*volume*(close-open) / b*(high-low-(close-open))
+
+        # moon_index = sign*a*volume*(max(close, open)/min(close, open)) - b*percentage_outside_candle
+        #     where percentage_outside_candle = (high-close + open-low)/(high-low) 
+        #           sign = 1 if close >= open, -1 if close < open
+        #           a and b are parameters to be configured (and validated with backtesting)
+ 
         action = "NONE"
 
         log.structuredLog({"action": action, "merda": "cacca", "faststmarket": fastestMarket.marketName}, True)

@@ -99,8 +99,9 @@ class ExchangeWrapper:
         output.timestamp = datetime.datetime.fromtimestamp(time.time())
         # print(time.clock() - initialTime)
         return output
-
+ 
     def getCurrentCandle(self, marketName, timeWindow = "oneMin"):
+        # Alas, this is very unreliable! Can return candles in the wrong order, skips candles...
         url = "https://bittrex.com/Api/v2.0/pub/market/GetLatestTick?marketName=%s&tickInterval=%s" % (marketName, timeWindow)
         response = requests.get(url)
         response.raise_for_status()
@@ -185,7 +186,6 @@ class ExchangeWrapper:
         url = "https://bittrex.com/api/v1.1/market/buylimit?market=%s&quantity=%s&rate=%s" % (marketName, str(quantity), str(rate))
         j = self.runMarketOperation(url)
         
-
     def sellLimit(self, market, quantity, rate):
         # The quantity is in the target currency, I think
         Logger.log("SELL!")
@@ -227,6 +227,12 @@ class ExchangeWrapper:
         result = self.sell(marketName, quantity, rate)
         order = self.getOrder(result["OrderId"])
         return order["QuantityRemaining"]
+
+    def buy(self, marketName, quantity, rate):
+        pass
+
+    def marketBuy(self, marketname, quantity):
+        pass
 
     def getOrderHistory(self):
         #

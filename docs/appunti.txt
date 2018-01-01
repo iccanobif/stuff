@@ -18,7 +18,7 @@ Nel pensare ad un algoritmo, potrei tenere conto di questi elementi:
 - la differenza tra la moving average attuale e quella di N (1?) candele prima, per calcolare 
   il coefficiente di crescita -> E' sicuramente piu' veloce e reattivo che le medie mobili, ma occhio
   che potrebbe dare troppo peso a rumore inutile
-- resistenza e supporto (quando il prezzo è vicino alla resistenza, vendi, se è vicino al supporto, compra)
+- resistenza e supporto (quando il prezzo è vicino alla resistenza, vendi, se è vicino al supporto, compra) ma come cazzo si calcola? con l'ichimoku cloud?
 
 Informazioni che so sui dati che mi arrivano da bittrex:
 - ogni timestamp è sempre all'inizio del minuto
