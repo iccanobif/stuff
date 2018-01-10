@@ -34,25 +34,26 @@ class MarketStatusRepository:
         self.computeEMA()
 
     def updateWithCandleList(self, candles):
-        # TODO: to be rewritten so that it uses the deques
-
-        self.todaysTicks = candles[-config.ticksBufferSize:]
-        if len(candles) < config.ticksBufferSize:
-            # Add padding if the candles aren't enough to fill the entire buffer
-            self.todaysTicks += [None for x in range(config.ticksBufferSize - len(candles))]
-        self.currentTickIndex = -1
+        
+        if candles[-1].timestamp <= self.todaysTicks[-1].timestamp:
+            # There are no new candles to add
+            return
+        
+        self.todaysTicks.extend(filter(lambda x: x.timestamp > candles[-1].timestamp, candles))
+        
+        # TODO call the computeEMA properly
         for i in range(min(config.ticksBufferSize, len(candles))):
             self.currentTickIndex += 1
             self.computeEMA()
 
     def computeEMA(self):
         # EMA: alpha*Price + (1-alpha)*PreviousEMA
-
-        # TODO: Handle the first tick! As it is now, it will probably crash.
-
         for EMAList, smoothingFactor in [(self.todaysEMAfast, config.fastEMASmoothingFactor), (self.todaysEMAslow, config.slowEMASmoothingFactor)]:
-            EMAList.append(smoothingFactor * self.todaysTicks[-1].price  \
-                           + (1 - smoothingFactor) * EMAList[-1])
+            if len(EMAList) == 0:
+                EMAList.append(self.todaysEMAfast[-1])
+            else:
+                EMAList.append(smoothingFactor * self.todaysTicks[-1].price  \
+                            + (1 - smoothingFactor) * EMAList[-1])
 
     def getTick(self, index = 0):
         if config.ticksBufferSize - index < 0:
@@ -90,7 +91,7 @@ def test():
     ms = MarketStatusRepository("BTC-XVG")
     ex = exchangewrapper.ExchangeWrapper()
     print("Getting candles...")
-    candles = ex.GetAllCandles("BTC-XVG")
+    candles = ex.GetAllCandles("BTC-XVG") # TODO: Fill the missing candles
     print("Computing stuff...")
     ms.updateWithCandleList(candles)
     print("Generating graph...")
