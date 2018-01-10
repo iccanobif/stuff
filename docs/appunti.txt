@@ -1,6 +1,8 @@
 Questo sembra interessante per prendere dati, anzichè direttamente da bittrex:
 https://www.cryptocompare.com/api/#-api-data-price-
 
+bell'exchange alternativo: https://www.cryptopia.co.nz/
+    - ha tantissime alt (più di bittrex) e via websocket arrivano update di prezzo e volume su tutti i mercati assieme!
 exchange alternativo invece che bittrex: https://changelly.com/
     - ha tante cripto, ma lavora anche con fiat
 anche gdax in realtà potrebbe non essere male

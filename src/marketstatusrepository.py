@@ -1,3 +1,5 @@
+from collections import deque
+
 from logger import Logger
 import config
 
@@ -20,35 +22,20 @@ class MarketStatusRepository:
     
     def __init__(self, marketName):
         self.marketName = marketName
-        self.todaysTicks = [None for x in range(config.ticksBufferSize)] # 24 hours' worth of 1-minute candles
-        # It might make sense to make a function that returns the last N days' EMA instead of computing it every time, 
-        self.todaysEMAfast = [None for x in range(config.ticksBufferSize)] # Simple Moving Average (fast ticks)
-        self.todaysEMAslow = [None for x in range(config.ticksBufferSize)] # Simple Moving Average (slow ticks)
+        self.todaysTicks = deque([], config.ticksBufferSize) # 24 hours' worth of 1-minute candles. To be appended new data to on the right side.
+        self.todaysEMAfast = deque([], config.ticksBufferSize) # Simple Moving Average (fast ticks)
+        self.todaysEMAslow = deque([], config.ticksBufferSize) # Simple Moving Average (slow ticks)
         self.currentTickIndex = -1
         self.totalProcessedTicks = -1
-        
-    def getLastNTicks(self, tickCount):
-        # Only used internally in this class
-        if self.currentTickIndex >= tickCount:
-            return self.todaysTicks[self.currentTickIndex - tickCount:self.currentTickIndex + 1]
-        else:
-            # Gotta ignore the None values in the list (this is only a problem when the bot just started and the buffer isn't full yet)
-            if tickCount <= self.totalProcessedTicks :
-                return self.todaysTicks[self.currentTickIndex - tickCount:] \
-                        + self.todaysTicks[0:self.currentTickIndex + 1]
-            else:
-                return self.todaysTicks[0:self.currentTickIndex + 1]
     
     def addTick(self, tick):
         self.totalProcessedTicks += 1
-        self.currentTickIndex += 1
-        if self.currentTickIndex == config.ticksBufferSize:
-            self.currentTickIndex = 0
-        self.todaysTicks[self.currentTickIndex] = tick
-
+        self.todaysTicks.append(tick)
         self.computeEMA()
 
     def updateWithCandleList(self, candles):
+        # TODO: to be rewritten so that it uses the deques
+
         self.todaysTicks = candles[-config.ticksBufferSize:]
         if len(candles) < config.ticksBufferSize:
             # Add padding if the candles aren't enough to fill the entire buffer
@@ -57,53 +44,32 @@ class MarketStatusRepository:
         for i in range(min(config.ticksBufferSize, len(candles))):
             self.currentTickIndex += 1
             self.computeEMA()
-            
 
     def computeEMA(self):
+        # EMA: alpha*Price + (1-alpha)*PreviousEMA
 
-        if len(self.getLastNTicks(config.fastEMAWindow)) < config.fastEMAWindow:
-        # Just started the bot, not enough candles for computing the EMA, so fallback to EMA
-            if config.accurateMean:
-                self.todaysEMAfast[self.currentTickIndex] = statistics.mean([x.price for x in self.getLastNTicks(config.fastEMAWindow) if not x is None])
-            else:
-                self.todaysEMAfast[self.currentTickIndex] = sum([x.price for x in self.getLastNTicks(config.fastEMAWindow) if not x is None])/len(self.getLastNTicks(config.fastEMAWindow))
-        else:
-            # Multiplier: (2 / (Time periods + 1) ) = (2 / (10 + 1) ) = 0.1818 (18.18%)
-            # EMA: {Close - EMA(previous day)} x multiplier + EMA(previous day). 
-            self.todaysEMAfast[self.currentTickIndex] = (self.todaysTicks[self.currentTickIndex].price - self.todaysEMAfast[self.currentTickIndex - 1]) \
-                                                        * config.fastEMAMultiplier \
-                                                        + self.todaysEMAfast[self.currentTickIndex - 1]
+        # TODO: Handle the first tick! As it is now, it will probably crash.
 
-        if len(self.getLastNTicks(config.slowEMAWindow)) < config.slowEMAWindow:
-        # Just started the bot, not enough candles for computing the EMA, so fallback to EMA
-            if config.accurateMean:
-                self.todaysEMAslow[self.currentTickIndex] = statistics.mean([x.price for x in self.getLastNTicks(config.slowEMAWindow)])
-            else:
-                self.todaysEMAslow[self.currentTickIndex] = sum([x.price for x in self.getLastNTicks(config.slowEMAWindow)])/len(self.getLastNTicks(config.slowEMAWindow))
-            
-        else:
-            # Multiplier: (2 / (Time periods + 1) ) = (2 / (10 + 1) ) = 0.1818 (18.18%)
-            # EMA: {Close - EMA(previous day)} x multiplier + EMA(previous day). 
-            self.todaysEMAslow[self.currentTickIndex] = (self.todaysTicks[self.currentTickIndex].price - self.todaysEMAslow[self.currentTickIndex - 1]) \
-                                                        * config.slowEMAMultiplier \
-                                                        + self.todaysEMAslow[self.currentTickIndex - 1]
-        
+        for EMAList, smoothingFactor in [(self.todaysEMAfast, config.fastEMASmoothingFactor), (self.todaysEMAslow, config.slowEMASmoothingFactor)]:
+            EMAList.append(smoothingFactor * self.todaysTicks[-1].price  \
+                           + (1 - smoothingFactor) * EMAList[-1])
+
     def getTick(self, index = 0):
         if config.ticksBufferSize - index < 0:
             raise Exception("too old, mang")
-        return self.todaysTicks[self.currentTickIndex - index]
+        return self.todaysTicks[-1]
         
     def getEMA(self, type):
         if type == "fast":
-            return self.todaysEMAfast[self.currentTickIndex]
+            return self.todaysEMAfast[-1]
         if type == "slow":
-            return self.todaysEMAslow[self.currentTickIndex]
+            return self.todaysEMAslow[-1]
         raise Exception("meh")
         
     def printMarketStatus(self):
-        Logger.log("Current tick: " + str(self.todaysTicks[self.currentTickIndex]))
-        Logger.log("    Current EMAfast: " + str(self.todaysEMAfast[self.currentTickIndex]))
-        Logger.log("    Current EMAslow: " + str(self.todaysEMAslow[self.currentTickIndex]))
+        Logger.log("Current tick: " + str(self.todaysTicks[-1]))
+        Logger.log("    Current EMAfast: " + str(self.todaysEMAfast[-1]))
+        Logger.log("    Current EMAslow: " + str(self.todaysEMAslow[-1]))
 
     def drawPlot(self):
 
