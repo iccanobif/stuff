@@ -31,34 +31,38 @@ class MarketStatusRepository:
     def addTick(self, tick):
         self.totalProcessedTicks += 1
         self.todaysTicks.append(tick)
-        self.computeEMA()
+        self.computeEMA() # TODO: figure out a decent way to avoid recalculating the EMA for the entire buffer everytime
 
     def updateWithCandleList(self, candles):
         
-        if candles[-1].timestamp <= self.todaysTicks[-1].timestamp:
-            # There are no new candles to add
-            return
+        if len(self.todaysTicks) > 0:
+            if candles[-1].timestamp <= self.todaysTicks[-1].timestamp:
+                # There are no new candles to add
+                return
+            # Consider only the candles that are not already in the buffer
+            candles = filter(lambda x: x.timestamp > self.todaysTicks[-1].timestamp, candles)
         
-        self.todaysTicks.extend(filter(lambda x: x.timestamp > candles[-1].timestamp, candles))
+        self.todaysTicks.extend(candles)
         
-        # TODO call the computeEMA properly
-        for i in range(min(config.ticksBufferSize, len(candles))):
-            self.currentTickIndex += 1
-            self.computeEMA()
+        self.computeEMA() # TODO: figure out a decent way to avoid recalculating the EMA for the entire buffer everytime
 
     def computeEMA(self):
         # EMA: alpha*Price + (1-alpha)*PreviousEMA
-        for EMAList, smoothingFactor in [(self.todaysEMAfast, config.fastEMASmoothingFactor), (self.todaysEMAslow, config.slowEMASmoothingFactor)]:
-            if len(EMAList) == 0:
-                EMAList.append(self.todaysEMAfast[-1])
-            else:
-                EMAList.append(smoothingFactor * self.todaysTicks[-1].price  \
-                            + (1 - smoothingFactor) * EMAList[-1])
+        self.todaysEMAfast.clear()
+        self.todaysEMAslow.clear()
+
+        for tick in self.todaysTicks:
+            for EMAList, smoothingFactor in [(self.todaysEMAfast, config.fastEMASmoothingFactor), (self.todaysEMAslow, config.slowEMASmoothingFactor)]:
+                if len(EMAList) == 0:
+                    EMAList.append(self.todaysTicks[-1].price)
+                else:
+                    EMAList.append(smoothingFactor * tick.price  \
+                                + (1 - smoothingFactor) * EMAList[-1])
 
     def getTick(self, index = 0):
         if config.ticksBufferSize - index < 0:
             raise Exception("too old, mang")
-        return self.todaysTicks[-1]
+        return self.todaysTicks[index-1]
         
     def getEMA(self, type):
         if type == "fast":
@@ -80,10 +84,11 @@ class MarketStatusRepository:
 
         pricedata = [go.Scatter(x = x, y = [x.close for x in self.todaysTicks], name="prices"), \
                     go.Scatter(x = x, y = [x.volume * coeff for x in self.todaysTicks], name="volume"), \
-                    go.Scatter(x = x, y = self.todaysEMAfast, name="fastEMA"), \
-                    go.Scatter(x = x, y = self.todaysEMAslow, name="slowEMA"), \
-                    go.Scatter(x = x, y = [(self.todaysEMAfast[i] - self.todaysEMAslow[i]) * self.todaysTicks[i].volume * 0.0000001 \
-                                            for i in range(config.ticksBufferSize)], name="kek")]
+                    go.Scatter(x = x, y = list(self.todaysEMAfast), name="fastEMA"),  \
+                    go.Scatter(x = x, y = list(self.todaysEMAslow), name="slowEMA"), \
+                    # go.Scatter(x = x, y = [(self.todaysEMAfast[i] - self.todaysEMAslow[i]) * self.todaysTicks[i].volume * 0.0000001 \
+                    #                         for i in range(config.ticksBufferSize)], name="kek") \
+                                            ]
 
         plotly.offline.plot(pricedata, filename="../output_files/graph_%s.html" % self.marketName)
 
