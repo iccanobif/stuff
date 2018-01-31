@@ -57,7 +57,7 @@ class ExchangeWrapperForBacktesting:
         self.currentTime = self.currentTime + datetime.timedelta(seconds=60)
 
     def getMarketList(self):
-        pass
+        return self.iterators.keys()
 
     def buy(self, market, quantity, rate):
         # 1 CURR = rate BTC
@@ -80,6 +80,12 @@ class ExchangeWrapperForBacktesting:
 
     def getCurrentCurrency(self):
         return self.currentCurrency
+
+    def getMarketSummary(self):
+        return [{"MarketName": m, "BaseVolume": 9999} for m in self.iterators.keys()]
+
+    def GetAllCandles(self, marketName, timeWindow = "oneMin"):
+        
 
 class ExchangeWrapper:
 

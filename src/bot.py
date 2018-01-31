@@ -12,7 +12,7 @@ def main():
     try:
         Logger.open()
         Logger.sendTelegramMessage("Bot started...")
-        exchange = ExchangeWrapper()
+        exchange = ExchangeWrapperForBacktesting()
         analyst = Analyst(exchange)
         marketRepos = dict() # TODO: Markets can appear and disappear, with time...
         for marketName in [x["MarketName"] for x in exchange.getMarketSummary() if x["BaseVolume"] > 3000]:
