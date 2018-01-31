@@ -7,7 +7,9 @@ class Logger:
     f = None
     structuredLogFile = None
 
-    telegramUpdater = Updater(token=config.telegramToken)
+    telegramUpdater = None
+    if config.enableTelegramIntegration:
+        telegramUpdater = Updater(token=config.telegramToken)
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
     def log(message):
