@@ -1,4 +1,4 @@
-import time, json, logging
+import time, json, logging, os
 from telegram.ext import Updater, CommandHandler
 import config
 
