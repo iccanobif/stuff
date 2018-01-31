@@ -25,6 +25,8 @@ class Logger:
             print(j)
 
     def open():
+        if not os.path.exists("../output_files"):
+            os.mkdir("../output_files")
         Logger.f = open("../output_files/log.txt", "w")
         Logger.structuredLogFile = open("../output_files/structuredlog.json", "w")
         Logger.structuredLogFile.write("[")
