@@ -16,10 +16,7 @@ class MarketStatusRepository:
     #     - andamento (in crescita? in discesa?) fondamentalmente qui è il valore delle moving averages
     # keep the ticks in a circular buffer
     # also keep another circular buffer holding the EMA for every corresponding value in the ticks buffer
-
-    # TODO: Might be a good idea to make a CircularBuffer class to avoid having to deal with its complexities here.
-    #       calls to getLastNTicks are currently the performance bottleneck in backtesting
-    
+   
     def __init__(self, marketName):
         self.marketName = marketName
         self.todaysTicks = deque([], config.ticksBufferSize) # 24 hours' worth of 1-minute candles. To be appended new data to on the right side.

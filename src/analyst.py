@@ -7,26 +7,18 @@ class Analyst:
         self.currentCurrency = config.baseCurrency
 
     def findFastestGrowingMarket(self, marketStatusRepoList):
-        maxValue = -1
-        maxRepo = None
-        for repo in marketStatusRepoList:
-            if repo.getTick().price > maxValue:
-                maxRepo = repo
-        return maxRepo
+        # the "fastest growing market" is merely the one where (fast EMA - slow EMA) is highest
+        shit = [(m, m.getEMA("fast") - m.getEMA("slow")) for m in marketStatusRepoList]
+        shit = sorted(shit, key=lambda x: -x[1])
+        return shit[0][0]
 
     def doTrading(self, marketStatusRepoList):
         """here do stuff on the exchange depending on the info I get from the marketStatus"""
         
-        # find the market where (fast EMA - slow EMA) is highest
         fastestMarket = self.findFastestGrowingMarket(marketStatusRepoList)
 
         # Keep track in this class how much value I put on a certain market, to calculate 
         # the gains and take decisions about doing a stop loss or not
-
-        # if config.verbose:
-        #     repo.printMarketStatus()
-        #     Logger.log("self.currentCurrency %s; self.currentPeak %f; currTick.price %f" \
-        #              % (self.currentCurrency, self.currentPeak, currTick.price))
 
         # Cool algo idea:
         # define the mooning index for a candle as:
@@ -39,4 +31,4 @@ class Analyst:
  
         action = "NONE"
 
-        log.structuredLog({"action": action, "merda": "cacca", "faststmarket": fastestMarket.marketName}, True)
+        Logger.structuredLog({"action": action, "merda": "cacca", "faststmarket": fastestMarket.marketName}, True)

@@ -19,10 +19,9 @@ def main():
             marketRepos[marketName] = MarketStatusRepository(marketName) 
         while True:
             for market in marketRepos.keys():
-                print("Updating for", market)
+                Logger.log("Updating for %s" % market)
                 marketRepos[market].updateWithCandleList(exchange.GetAllCandles(market))
             analyst.doTrading(marketRepos.values())
-            quit()
             exchange.wait()
         Logger.close()
     except:
