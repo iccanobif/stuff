@@ -20,13 +20,15 @@ def main():
         while True:
             for market in marketRepos.keys():
                 Logger.log("Updating for %s" % market)
-                marketRepos[market].updateWithCandleList(exchange.GetAllCandles(market))
+                if hasattr(exchange, "GetAllCandles"):
+                    marketRepos[market].updateWithCandleList(exchange.GetAllCandles(market))
+                else:
+                    raise NotImplementedError
             analyst.doTrading(marketRepos.values())
             exchange.wait()
         Logger.close()
     except:
         exceptionInfo = traceback.format_exc()
-        print(exceptionInfo)
         Logger.log(exceptionInfo)
         Logger.sendTelegramMessage(exceptionInfo)
         Logger.close()

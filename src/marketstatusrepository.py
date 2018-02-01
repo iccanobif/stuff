@@ -92,13 +92,15 @@ class MarketStatusRepository:
 def test():
     ms = MarketStatusRepository("BTC-XVG")
     ex = exchangewrapper.ExchangeWrapper()
-    print("Getting candles...")
+    Logger.open()
+    Logger.log("Getting candles...")
     candles = ex.GetAllCandles("BTC-XVG") # TODO: Fill the missing candles
-    print("Computing stuff...")
+    Logger.log("Computing stuff...")
     ms.updateWithCandleList(candles)
-    print("Generating graph...")
+    Logger.log("Generating graph...")
     ms.drawPlot()
-    print("Done.")
+    Logger.log("Done.")
+    Logger.close()
 
 if __name__ == "__main__":
     test()

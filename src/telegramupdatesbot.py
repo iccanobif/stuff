@@ -45,7 +45,6 @@ def main():
     except:
         Logger.log("eccezione gestita...")
         exceptionInfo = traceback.format_exc()
-        print(exceptionInfo)
         Logger.log(exceptionInfo)
         Logger.sendTelegramMessage(exceptionInfo)
         

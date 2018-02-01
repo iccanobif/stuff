@@ -84,9 +84,6 @@ class ExchangeWrapperForBacktesting:
     def getMarketSummary(self):
         return [{"MarketName": m, "BaseVolume": 9999} for m in self.iterators.keys()]
 
-    def GetAllCandles(self, marketName, timeWindow = "oneMin"):
-        
-
 class ExchangeWrapper:
 
     def getCurrentTick(self, marketName):
