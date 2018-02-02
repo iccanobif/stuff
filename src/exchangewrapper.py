@@ -29,6 +29,7 @@ class ExchangeWrapperForBacktesting:
                 self.currTick = Candle(self.marketName, json.loads(line))
             return self.currTick # Returns the current tick (it's the one I was asked for)
 
+
     def __init__(self):
         self.currentTime = datetime.datetime.strptime("2017-09-06T00:00:00", config.timestampStringFormat)
         self.iterators = dict()
@@ -42,6 +43,18 @@ class ExchangeWrapperForBacktesting:
             marketName = marketName.replace(".json", "")
             self.iterators[marketName] = self.TickIterator(marketName)
 
+        # Populate a dict with the timestamp of the first candle of each market, I need this so that getMarketSummary() 
+        # and getMarketList() only return markets that are already open at the current time.
+        # This could have been a class variable
+        self.initialTimestamps = dict()
+        for marketName, f in [(m.replace(".json", ""), open(config.backtestingDataDirectory + "/" + m)) \
+                                for m \
+                                in os.listdir(config.backtestingDataDirectory) \
+                                if m.endswith(".json")]:
+            j = json.loads(f.readline())
+            self.initialTimestamps[marketName] = datetime.datetime.strptime(j["T"], config.timestampStringFormat)
+            f.close()
+
     def getCurrentTick(self, marketName):
         # Returns a Tick object
         candle = self.iterators[marketName].get(self.currentTime)
@@ -54,8 +67,8 @@ class ExchangeWrapperForBacktesting:
     def wait(self):
         # Simulate the passage of time when backtesting
         # Adds 60 seconds
-        Logger.log("Waiting...")
         self.currentTime = self.currentTime + datetime.timedelta(seconds=60)
+        Logger.log("Waiting... and now it's " + str(self.currentTime))
 
     def getMarketList(self):
         return self.iterators.keys()
@@ -83,13 +96,15 @@ class ExchangeWrapperForBacktesting:
         return self.currentCurrency
 
     def getMarketSummary(self):
-        return [{"MarketName": m, "BaseVolume": 9999} for m in self.iterators.keys()]
+        return [{"MarketName": m, "BaseVolume": 9999} \
+                for m \
+                in self.iterators.keys()
+                if self.initialTimestamps[m] <= self.currentTime]
 
 class ExchangeWrapper:
 
     def getCurrentTick(self, marketName):
         # Returns an object with the properties Bid, Ask and Last
-        initialTime = time.clock()
         response = requests.get("https://bittrex.com/api/v1.1/public/getticker?market=%s" % marketName)
         response.raise_for_status()
         j = response.json()
@@ -101,7 +116,6 @@ class ExchangeWrapper:
         output.ask = j["result"]["Ask"]
         output.bid = j["result"]["Bid"]
         output.timestamp = datetime.datetime.fromtimestamp(time.time())
-        # print(time.clock() - initialTime)
         return output
  
     def getCurrentCandle(self, marketName, timeWindow = "oneMin"):
@@ -189,6 +203,7 @@ class ExchangeWrapper:
             return
         url = "https://bittrex.com/api/v1.1/market/buylimit?market=%s&quantity=%s&rate=%s" % (marketName, str(quantity), str(rate))
         j = self.runMarketOperation(url)
+        return j
         
     def sellLimit(self, market, quantity, rate):
         # The quantity is in the target currency, I think
@@ -268,7 +283,7 @@ class ExchangeWrapper:
 
 def test():
     Logger.open()
-    ex = ExchangeWrapper()
+    ex = ExchangeWrapperForBacktesting()
     # print(len(ex.getMarketList()))
     # print(ex.getCurrentTick("BTC-LTC"))
     # print(ex.GetAllCandles("BTC-MONA")[0])
@@ -287,7 +302,8 @@ def test():
     # print(ex.getBuyOrderBook("BTC-XRP"))
 
     # print(ex.getBalances())
-    print(utilities.prettyPrintJSONVertical(ex.getOrderHistory()))
+    # print(utilities.prettyPrintJSONVertical(ex.getOrderHistory()))
+    print(ex.initialTimestamps)
     Logger.close()
 
 if __name__ == "__main__":
