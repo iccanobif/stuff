@@ -43,7 +43,6 @@ def main():
             time.sleep(60*10) # 10 minutes
         Logger.close()
     except:
-        Logger.log("eccezione gestita...")
         exceptionInfo = traceback.format_exc()
         Logger.log(exceptionInfo)
         Logger.sendTelegramMessage(exceptionInfo)

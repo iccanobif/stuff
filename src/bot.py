@@ -23,7 +23,7 @@ def main():
                 if hasattr(exchange, "GetAllCandles"):
                     marketRepos[market].updateWithCandleList(exchange.GetAllCandles(market))
                 else:
-                    raise NotImplementedError
+                    marketRepos[market].addTick(exchange.getCurrentCandle(market))
             analyst.doTrading(marketRepos.values())
             exchange.wait()
         Logger.close()

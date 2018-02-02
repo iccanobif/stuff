@@ -13,9 +13,9 @@ class Logger:
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
     def log(message):
+        string = time.strftime("[%Y-%m-%d %H:%M:%S]", time.localtime(time.time())) + " " + message
         if config.enableStdoutLog:
             print(string)
-        string = time.strftime("[%Y-%m-%d %H:%M:%S]", time.localtime(time.time())) + " " + message
         Logger.f.write(string + "\n")
 
     def structuredLog(obj, printToStdout = False):

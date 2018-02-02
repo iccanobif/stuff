@@ -19,7 +19,7 @@ class ExchangeWrapperForBacktesting:
             if self.currTick is not None and timestamp < self.currTick.getTimestamp():
                 Logger.log("timestamp " + str(timestamp))
                 Logger.log("currTick.getTimestamp " + str(self.currTick.getTimestamp()))
-                raise Exception("timestamp:")
+                raise Exception("gotta make it so that the caller doesn't bother getting candles for markets that haven't even been listed yet :)")
             # If asked for tick in the future, go find it even if i have to skip some
             while self.currTick is None or self.currTick.getTimestamp() < timestamp:
                 line = self.f.readline()
@@ -30,7 +30,7 @@ class ExchangeWrapperForBacktesting:
             return self.currTick # Returns the current tick (it's the one I was asked for)
 
     def __init__(self):
-        self.currentTime = datetime.datetime.strptime("2017-09-05T22:31:00", config.timestampStringFormat)
+        self.currentTime = datetime.datetime.strptime("2017-09-06T00:00:00", config.timestampStringFormat)
         self.iterators = dict()
 
         self.currentBalance = 100
@@ -54,6 +54,7 @@ class ExchangeWrapperForBacktesting:
     def wait(self):
         # Simulate the passage of time when backtesting
         # Adds 60 seconds
+        Logger.log("Waiting...")
         self.currentTime = self.currentTime + datetime.timedelta(seconds=60)
 
     def getMarketList(self):
