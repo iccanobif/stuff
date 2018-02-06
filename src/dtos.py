@@ -22,10 +22,11 @@ class Candle:
         self.high = jsonTickData["H"]
         self.low = jsonTickData["L"]
         self.timestamp = self.jsonTickData["T"]
+        self.timestampConverted = datetime.datetime.strptime(self.timestamp, config.timestampStringFormat)
 
     def getTimestamp(self):
         #Example: 2017-09-05T22:28:00
-        return datetime.datetime.strptime(self.timestamp, config.timestampStringFormat)
+        return self.timestampConverted
 
     def __str__(self):
         return str(self.market + " " + self.jsonTickData["T"] + " C: " + str(self.close))

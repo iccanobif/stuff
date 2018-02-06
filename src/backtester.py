@@ -17,9 +17,10 @@ def main():
         marketRepos = dict() # TODO: Markets can appear and disappear, with time...
         for marketName in [x["MarketName"] for x in exchange.getMarketSummary() if x["BaseVolume"] > 3000]:
             marketRepos[marketName] = MarketStatusRepository(marketName) 
+        Logger.log("Markets: " + " ".join(marketRepos.keys()))
         while True:
             for market in marketRepos.keys():
-                # Logger.log("Updating for %s" % market)
+                # TODO: the iterations of this loop don't depend on each other, so we can parallelize
                 marketRepos[market].addTick(exchange.getCurrentCandle(market))
             analyst.doTrading(marketRepos.values())
             exchange.wait()

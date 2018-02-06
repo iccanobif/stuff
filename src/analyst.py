@@ -31,4 +31,4 @@ class Analyst:
  
         action = "NONE"
 
-        Logger.structuredLog({"action": action, "merda": "cacca", "faststmarket": fastestMarket.marketName}, True)
+        Logger.structuredLog({"action": action, "merda": "cacca", "faststmarket": fastestMarket.marketName}, False)

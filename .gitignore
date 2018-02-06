@@ -3,3 +3,4 @@ output_files
 backtesting_data
 _*
 src/config.py
+deploy_utilities

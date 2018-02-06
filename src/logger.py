@@ -20,6 +20,7 @@ class Logger:
 
     def structuredLog(obj, printToStdout = False):
         j = json.dumps(obj)
+        Logger.log(j)
         Logger.structuredLogFile.write(j + ",\n")
         if printToStdout:
             print(j)
