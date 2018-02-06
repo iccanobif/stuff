@@ -28,7 +28,7 @@ class MarketStatusRepository:
     def addTick(self, tick):
         self.totalProcessedTicks += 1
         self.todaysTicks.append(tick)
-        self.computeEMA() # TODO: figure out a decent way to avoid recalculating the EMA for the entire buffer everytime
+        self.computeEMA(tick)
 
     def updateWithCandleList(self, candles):
         
@@ -41,20 +41,23 @@ class MarketStatusRepository:
         
         self.todaysTicks.extend(candles)
         
-        self.computeEMA() # TODO: figure out a decent way to avoid recalculating the EMA for the entire buffer everytime
+        self.computeEMAFull() # TODO: figure out a decent way to avoid recalculating the EMA for the entire buffer everytime
 
-    def computeEMA(self):
+    def computeEMA(self, tick):
+        for EMAList, smoothingFactor in [(self.todaysEMAfast, config.fastEMASmoothingFactor), (self.todaysEMAslow, config.slowEMASmoothingFactor)]:
+            if len(EMAList) == 0:
+                EMAList.append(self.todaysTicks[-1].price)
+            else:
+                EMAList.append(smoothingFactor * self.todaysTicks[-1].price  \
+                               + (1 - smoothingFactor) * EMAList[-1])
+
+    def computeEMAFull(self):
         # EMA: alpha*Price + (1-alpha)*PreviousEMA
         self.todaysEMAfast.clear()
         self.todaysEMAslow.clear()
 
         for tick in self.todaysTicks:
-            for EMAList, smoothingFactor in [(self.todaysEMAfast, config.fastEMASmoothingFactor), (self.todaysEMAslow, config.slowEMASmoothingFactor)]:
-                if len(EMAList) == 0:
-                    EMAList.append(self.todaysTicks[-1].price)
-                else:
-                    EMAList.append(smoothingFactor * tick.price  \
-                                + (1 - smoothingFactor) * EMAList[-1])
+            self.computeEMA(tick)
 
     def getTick(self, index = 0):
         if config.ticksBufferSize - index < 0:

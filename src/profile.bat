@@ -1,1 +1,1 @@
-python -m cProfile -s tottime bot.py > ..\output_files\profile.txt
+python -m cProfile -s tottime backtester.py > ..\output_files\profile.txt
